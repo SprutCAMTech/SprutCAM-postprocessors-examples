@@ -1,5 +1,5 @@
-# SprutCAM-postprocessors-examples
-Examples of postprocessors for [**SprutCAM**](https://www.sprutcam.com).
+# SprutCAM postprocessors examples
+Examples of postprocessors' source codes for [**SprutCAM**](https://www.sprutcam.com).
 
 To be possible to build the postprocessors you should install SprutCAM before, because postprocessors depend on SprutCAM's libraries. 
 You can use download links from [ the official site](https://www.sprutcam.com).

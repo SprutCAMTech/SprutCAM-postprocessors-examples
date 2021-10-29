@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+  <Description>
+    <Comments />
+    <CNCSystem />
+    <MachineName />
+    <Authors />
+  </Description>
+  <Common>
+    <BreakArcs>No</BreakArcs>
+    <!-- No, Cuts, Halfs, Quaters -->
+    <BreakHelix>false</BreakHelix>
+    <!-- false, true -->
+    <ArcTolerance>0.01</ArcTolerance>
+    <MaxCircleRadius>0</MaxCircleRadius>
+    <DecimalSeparator>.</DecimalSeparator>
+  </Common>
+  <UserDefinedParameters>
+    <Group ID="OutFiles" Caption="$(OutputFiles)">
+      <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+      <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
+      <Parameter ID="WriteXMLOfPPFun" Caption="Write xml file of ppfun parameters" Type="Boolean" />
+      <Parameter ID="PPFunXMLFile" Caption="PPFun xml-file name" Type="FileName" FilesFilter="*.xml|*.xml" />
+    </Group>
+  </UserDefinedParameters>
+</Settings>

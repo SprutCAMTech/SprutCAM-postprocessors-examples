@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml-model href="PostSchema.xsd"?>
+<Settings Version="1.0">
+  <Description>
+    <Comments>Demo post</Comments>
+    <CNCSystem>ISO fanuc</CNCSystem>
+    <MachineName>---</MachineName>
+    <Authors>cepera@sprut.ru</Authors>
+  </Description>
+  <Common>
+    <BreakArcs>No</BreakArcs>
+    <!-- No, Cuts, Halfs, Quaters -->
+    <BreakHelix>false</BreakHelix>
+    <!-- false, true -->
+    <ArcTolerance>0.01</ArcTolerance>
+    <MaxCircleRadius>0</MaxCircleRadius>
+    <DecimalSeparator>.</DecimalSeparator>
+  </Common>
+  <UserDefinedParameters>
+    <Group ID="OutFiles" Caption="$(OutputFiles)">
+      <Parameter ID="NCFolder" Caption="$(NCFilesDir)" Type="FolderName" />
+      <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+      <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
+    </Group>
+    <Group ID="InputParams" Caption="Input parameters">
+      <Parameter ID="ProjectAuthor" Caption="Project author" Type="String">
+        <Value Default="true">Employee 1</Value>
+        <Value>Employee 2</Value>
+        <Value>Employee 3</Value>
+      </Parameter>
+      <Parameter ID="ProjectID" Caption="Project ID" Type="String">PRJ.123.456.789</Parameter>
+      <Parameter ID="Text123" Caption="Text 123 for user" Type="String">2342</Parameter>
+      <Parameter ID="ShowMySettings" Caption="Show my settings" Type="Boolean" />
+      <Parameter ID="StartExtUtil" Caption="Start external util" Type="Boolean">false</Parameter>
+    </Group>
+  </UserDefinedParameters>
+</Settings>

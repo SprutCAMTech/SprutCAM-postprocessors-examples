@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments>SprutCAM postprocessor of standard delivery</Comments>
+        <CNCSystem>Fanuc 30i mill</CNCSystem>
+        <MachineName></MachineName>
+        <Authors>cepera@sprut.ru</Authors>
+    </Description>
+    <Common>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakArcs>No</BreakArcs>
+        <!-- false, true -->
+        <BreakHelix>false</BreakHelix>
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName"></Parameter>
+            <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
+        </Group>
+        <Group ID="BlockFormat" Caption="Format of nc-block">
+            <Parameter ID="Numbering" Caption="Numbering" Type="Boolean">true</Parameter>
+            <Parameter ID="Spaces" Caption="Spaces between codes" Type="Boolean">true</Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>

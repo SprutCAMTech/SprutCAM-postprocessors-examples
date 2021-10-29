@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+  <Description>
+    <Comments />
+    <CNCSystem />
+    <MachineName />
+    <Authors />
+  </Description>
+  <Common>
+    <BreakArcs>No</BreakArcs>
+    <!-- No, Cuts, Halfs, Quaters -->
+    <BreakHelix>false</BreakHelix>
+    <!-- false, true -->
+    <ArcTolerance>0.01</ArcTolerance>
+    <MaxCircleRadius>0</MaxCircleRadius>
+    <DecimalSeparator>.</DecimalSeparator>
+  </Common>
+  <UserDefinedParameters>
+    <Group ID="OutFiles" Caption="$(OutputFiles)">
+      <Parameter ID="OutputFolder" Caption="$(NCFilesDir)" Type="FolderName" />
+      <Parameter ID="LSFileName" Caption="*.ls files short name" Type="String">moves</Parameter>
+      <Parameter ID="MaxMoveCount" Caption="Max movement count per file" Type="Integer">2000</Parameter>
+    </Group>
+    <Group ID="Smoothing" Caption="Smoothing">
+      <Parameter ID="DefaultACC" Caption="Default ACC value" Type="Integer">65</Parameter>
+      <Parameter ID="ShortLength" Caption="Short length" Type="Double">0.2</Parameter>
+      <Parameter ID="StartVelocity" Caption="Start velocity (mm/sec)" Type="Double">10</Parameter>
+      <Parameter ID="CntValueRapid" Caption="CNT for Rapid or Joint move (%)" Type="Integer">30</Parameter>
+      <Parameter ID="CntValueMin" Caption="Min CNT value (%)" Type="Integer">20</Parameter>
+      <Parameter ID="CntValueMax" Caption="Max CNT value (%)" Type="Integer">80</Parameter>
+      <Parameter ID="AngMin" Caption="Angle of min CNT (deg)" Type="Integer">90</Parameter>
+      <Parameter ID="AngMax" Caption="Angle of max CNT (deg)" Type="Integer">140</Parameter>
+    </Group>
+    <Group ID="Format" Caption="Format">
+      <Parameter ID="ExtAxesGroup" Caption="External axes group" Type="Integer">
+        <Value Caption="Group 1" Default="true">1</Value>
+        <Value Caption="Group 2">2</Value>
+      </Parameter>
+      <Parameter ID="RobotHolds" Caption="Robot holds" Type="Integer">
+        <Value Caption="Tool" Default="true">0</Value>
+        <Value Caption="Part">1</Value>
+      </Parameter>
+      <Parameter ID="UFrameFormat" Caption="UFRAME format" Type="Integer">
+        <Value Caption="UFRAME_NUM=1" Default="true">0</Value>
+        <Value Caption="UFRAME[1]=XYZABC">1</Value>
+      </Parameter>
+      <Parameter ID="UToolFormat" Caption="UTOOL format" Type="Integer">
+        <Value Caption="UTOOL_NUM=1" Default="true">0</Value>
+        <Value Caption="UTOOL[1]=XYZABC">1</Value>
+      </Parameter>
+    </Group>
+  </UserDefinedParameters>
+</Settings>

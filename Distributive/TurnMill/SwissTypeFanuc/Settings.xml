@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-model href="PostSchema.xsd"?>
+<Settings Version="1.0">
+    <Description>
+        <Comments>Hanhwa XD16III</Comments>
+        <CNCSystem>Fanuc</CNCSystem>
+        <MachineName>Hanhwa XD16III</MachineName>
+        <Authors></Authors>
+    </Description>
+    <Common>
+        <BreakArcs>No</BreakArcs> <!-- No, Cuts, Halfs, Quaters -->
+        <BreakHelix>false</BreakHelix> <!-- false, true -->
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="NCFilePath" Caption="$(NCFilesDir)" Type="FolderName"></Parameter>
+            <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
+        </Group>
+        <Group ID="Polar" Caption="Полярная интерполяция">
+            <Parameter ID="RapidFeed" Caption="Быстрая подача" Type="Double">1000</Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>

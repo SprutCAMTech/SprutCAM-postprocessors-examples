@@ -21,8 +21,8 @@
     <UserDefinedParameters>
         <Group ID="OutFiles" Caption="$(OutputFiles)">
             <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
-            <Parameter ID="NCProgName" Caption="NC program name" Type="String" />
-            <Parameter ID="OutWCS" Caption="WCS output" Type="Boolean" >true</Parameter>
+            <Parameter ID="NCProgName" Caption="NC program name (empty to get from the project name)" Type="String" />
+            <Parameter ID="OutWCS" Caption="Output the WCS number at start" Type="Boolean" >true</Parameter>
             <Parameter ID="UseCycle19" Caption="Local CS ouput mode" Type="Boolean" >
                 <Value Caption="PLANE SPATIAL" Default="true">false</Value>
                 <Value Caption="CYCLE 19">true</Value>

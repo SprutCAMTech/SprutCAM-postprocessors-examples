@@ -26,7 +26,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord C = new NumericNCWord("C{+#####.###}", 0);
         ///<summary>Circle radius R</summary>
         public NumericNCWord R = new NumericNCWord("R{+#####.###}", 0);
-        ///<summary>Just number</summary>
+        ///<summary>Just a number register to quick format any numbers before output</summary>
         public NumericNCWord Number = new NumericNCWord("{+#####.###}", 0);
         ///<summary>Circle direction: DR+, DR-</summary>
         public TextNCWord DR = new TextNCWord("DR", "+", "");

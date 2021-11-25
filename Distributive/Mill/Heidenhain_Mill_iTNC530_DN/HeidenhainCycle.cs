@@ -9,6 +9,7 @@ using System.Collections.Generic;
 
 namespace SprutTechnology.SCPostprocessor
 {
+    ///<summary>One Q parameter of a Heidenhain cycle.</summary> 
     public struct CycleQParameter
     {
         public int Number;
@@ -16,6 +17,7 @@ namespace SprutTechnology.SCPostprocessor
         public double Value;
     }
 
+    ///<summary>Actual set of data of a Heidenhain cycle: cycle name, number and the list of Q parameters.</summary> 
     public class CycleState
     {
         public string CycleName;
@@ -35,6 +37,7 @@ namespace SprutTechnology.SCPostprocessor
         }
     }
 
+    ///<summary>Class that helps to form the output of a Heidenhain cycle.</summary> 
     public class HeidenhainCycle
     {
         public static double tolerance = 0.001;
@@ -104,12 +107,15 @@ namespace SprutTechnology.SCPostprocessor
                 CycleQParameter q;
                 int charCount = post.nc.BlockN.ToString().Length + 1;
                 string indent = StringOfChar(' ', charCount);
-                for (int i = 0; i<curState.Q.Count-1; i++) {
+                for (int i = 0; i<curState.Q.Count; i++) {
                     q = curState.Q[i];
-                    post.nc.WriteLine(indent + $"Q{q.Number}={post.nc.Number.ToString(q.Value)}     ;{q.Name}~");
+                    string s = indent + $"Q{q.Number}={post.nc.Number.ToString(q.Value)}";
+                    string space = StringOfChar(' ', 20-s.Length);
+                    if (i<curState.Q.Count-1)
+                        post.nc.WriteLine(s + space + $";{q.Name}~");
+                    else
+                        post.nc.WriteLine(s + space + $";{q.Name}");
                 }
-                q = curState.Q[curState.Q.Count-1];
-                post.nc.WriteLine(indent + $"Q{q.Number}={post.nc.Number.ToString(q.Value)}     ;{q.Name}");
                 post.nc.OutText($"CYCL CALL");
             }
             var tmpState = prevState;

@@ -7,4 +7,3 @@ You can use download links from [ the official site](https://www.sprutcam.com).
 Use instructions from [this page](https://kb.sprutcam.com/display/SKB/Prepare+computer+to+develop+.NET+postprocessors) to prepare your computer for postprocessors writing.
 
 Documentation of postprocessing in SprutCAM can be found [here](https://cepera-one.github.io/index.html).
-test string

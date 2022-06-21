@@ -1,11 +1,4 @@
-using System;
-using System.Text;
-using System.Diagnostics;
 using static SprutTechnology.STDefLib.STDef;
-using static SprutTechnology.SCPostprocessor.CommonFuncs;
-using SprutTechnology.VecMatrLib;
-using static SprutTechnology.VecMatrLib.VML;
-using System.Collections.Generic;
 
 namespace SprutTechnology.SCPostprocessor
 {
@@ -16,7 +9,6 @@ namespace SprutTechnology.SCPostprocessor
         public string Name;
         public double Value;
     }
-
 
     ///<summary>Actual set of data of a Heidenhain cycle: cycle name, number and the list of Q parameters.</summary> 
     public class CycleState

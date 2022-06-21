@@ -7,7 +7,6 @@ using SprutTechnology.VecMatrLib;
 using static SprutTechnology.VecMatrLib.VML;
 using System.Collections.Generic;
 
-
 namespace SprutTechnology.SCPostprocessor
 {
     ///<summary>One Q parameter of a Heidenhain cycle.</summary> 
@@ -17,6 +16,7 @@ namespace SprutTechnology.SCPostprocessor
         public string Name;
         public double Value;
     }
+
 
     ///<summary>Actual set of data of a Heidenhain cycle: cycle name, number and the list of Q parameters.</summary> 
     public class CycleState

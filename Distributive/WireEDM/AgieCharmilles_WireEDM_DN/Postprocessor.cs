@@ -196,8 +196,7 @@ namespace SprutTechnology.SCPostprocessor
                     }
                     else if (mode == 3) // 2Contours
                     {
-                        nc.Colon.v = 1;
-                        nc.Colon.v0 = MaxReal;
+                        nc.Colon.Show();
                         nc.X2.v = ep2X;
                         nc.Y2.v = ep2Y;
                         nc.Z2.v = ep2Z;
@@ -335,12 +334,12 @@ namespace SprutTechnology.SCPostprocessor
             switch (cld[1])
             {
                 case 58: // TechInfo
-                    nc.Output("(Rapid level       = " + Str(cld[9]) + ")");
-                    nc.Output("(Upper guide level = " + Str(cld[47]) + ")");
-                    nc.Output("(Upper work level  = " + Str(cld[10]) + ")");
-                    nc.Output("(Lower work level  = " + Str(cld[11]) + ")");
-                    nc.Output("(Lower guide level = " + Str(cld[48]) + ")");
-                    nc.Output("(Wire diameter     = " + Str(cld[27]) + ")");
+                    nc.Output("(Rapid level       = " + Str((double)cld[9]) + ")");
+                    nc.Output("(Upper guide level = " + Str((double)cld[47]) + ")");
+                    nc.Output("(Upper work level  = " + Str((double)cld[10]) + ")");
+                    nc.Output("(Lower work level  = " + Str((double)cld[11]) + ")");
+                    nc.Output("(Lower guide level = " + Str((double)cld[48]) + ")");
+                    nc.Output("(Wire diameter     = " + Str((double)cld[27]) + ")");
                     break;
 
                 case 56: // WEDMConditions

@@ -36,7 +36,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord I1 = new NumericNCWord("I{-####!###}", 0);
         public NumericNCWord J1 = new NumericNCWord("J{-####!###}", 0);
         /// <summary>Colon symbol</summary>
-        public NumericNCWord Colon = new NumericNCWord(":{}", 0);
+        public TextNCWord Colon = new TextNCWord(":");
         public NumericNCWord GInterp2 = new NumericNCWord("G{00}", 999999);
         public NumericNCWord X2 = new NumericNCWord("X{-####!###}", 0);
         public NumericNCWord Y2 = new NumericNCWord("Y{-####!###}", 0);

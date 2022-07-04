@@ -57,13 +57,13 @@ public partial class Postprocessor : TPostprocessor
         if (cmd.IsOn)
         {
             nc.GCompens.v = cmd.IsRightDirection ? 42 : 41;
-            nc.H.v = nc.H.v0 = cmd.CorrectorNumber;
+            nc.H.Hide(cmd.CorrectorNumber);
         }
         else
         {
             nc.GCompens.v = 40;
         }
-        nc.GCompens.v0 = nc.GCompens.v;
+        nc.GCompens.Hide();
         compensNeedOut = true;
     }
 
@@ -220,7 +220,7 @@ public partial class Postprocessor : TPostprocessor
 
     public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray _)
     {
-        nc.C.v = nc.C.v0 = cmd.FeedCode;
+        nc.C.Hide(cmd.FeedCode);
         conditionsNeedOut = true;
     }
 

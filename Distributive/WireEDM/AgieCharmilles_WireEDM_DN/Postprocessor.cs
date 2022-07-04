@@ -272,6 +272,12 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
+        public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
+        {
+            nc.C.v = nc.C.v0 = cld[2];
+            ConditionsNeedOut = true;
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

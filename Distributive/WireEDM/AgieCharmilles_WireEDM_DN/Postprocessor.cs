@@ -278,6 +278,23 @@ namespace SprutTechnology.SCPostprocessor
             ConditionsNeedOut = true;
         }
 
+        public override void OnFinishProject(ICLDProject prj)
+        {
+            nc.Block.Out();
+            if (WireInserted)
+            {
+                BreakWire();
+            }
+
+            // M02
+            nc.MStop.v = 02;
+            nc.MStop.v0 = MaxReal;
+            nc.Block.Out();
+            nc.Output("");
+
+            // TODO: NCSub.Output
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

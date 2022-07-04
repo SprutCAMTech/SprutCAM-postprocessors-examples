@@ -7,7 +7,7 @@
         <Comments></Comments>
         <CNCSystem></CNCSystem>
         <MachineName></MachineName>
-        <Authors></Authors>
+        <Authors>Lipatov Alexander</Authors>
     </Description>
     <Common>
         <!-- No, Cuts, Halfs, Quaters -->

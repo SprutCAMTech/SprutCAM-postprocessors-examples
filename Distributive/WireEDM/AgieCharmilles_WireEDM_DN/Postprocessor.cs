@@ -330,6 +330,56 @@ namespace SprutTechnology.SCPostprocessor
             Fp2Z = Fp1Z;
         }
 
+        public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
+        {
+            switch (cld[1])
+            {
+                case 58: // TechInfo
+                    nc.Output("(Rapid level       = " + Str(cld[9]) + ")");
+                    nc.Output("(Upper guide level = " + Str(cld[47]) + ")");
+                    nc.Output("(Upper work level  = " + Str(cld[10]) + ")");
+                    nc.Output("(Lower work level  = " + Str(cld[11]) + ")");
+                    nc.Output("(Lower guide level = " + Str(cld[48]) + ")");
+                    nc.Output("(Wire diameter     = " + Str(cld[27]) + ")");
+                    break;
+
+                case 56: // WEDMConditions
+                    nc.H.v = cld[4]; // Offset code
+                    nc.H.v0 = MaxReal;
+                    nc.HValue.v = cld[5]; // Offset value
+                    nc.HValue.v0 = MaxReal;
+                    nc.Block.Out();
+                    break;
+
+                case 50: // STARTSUB
+                    nc.BlockN.v = nc.ProgN + cld[2];
+                    nc.BlockN.v0 = MaxReal;
+                    nc.Block.Out();
+                    break;
+
+                case 51: // ENDSUB
+                    if (WireInserted)
+                    {
+                        BreakWire();
+                    }
+                    nc.MSub.v = 99;
+                    nc.MSub.v0 = MaxReal;
+                    nc.Block.Out();
+                    nc.Output("");
+                    break;
+
+                case 52: // CALLSUB
+                    nc.MSub.v = 98;
+                    nc.MSub.v0 = MaxReal;
+                    nc.SubN.v = nc.ProgN + cld[2];
+                    nc.SubN.v0 = MaxReal;
+                    nc.Block.Out();
+                    // Idle sub call
+                    // TODO: NCSub.Output(cld[2], 0)
+                    break;
+            }
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

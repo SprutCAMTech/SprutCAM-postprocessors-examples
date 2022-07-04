@@ -62,7 +62,7 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
         {
             var outStr = nc.Block.Form();
-            nc.Output(outStr + $"({cmd.CLDataS})");
+            nc.WriteLine(outStr + $"({cmd.CLDataS})");
         }
 
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
@@ -277,7 +277,7 @@ namespace SprutTechnology.SCPostprocessor
             // M02
             nc.MStop.Show(02);
             nc.Block.Out();
-            nc.Output("");
+            nc.WriteLine();
 
             // TODO: NCSub.Output
         }
@@ -317,12 +317,12 @@ namespace SprutTechnology.SCPostprocessor
             switch (cld[1])
             {
                 case 58: // TechInfo
-                    nc.Output("(Rapid level       = " + Str((double)cld[9]) + ")");
-                    nc.Output("(Upper guide level = " + Str((double)cld[47]) + ")");
-                    nc.Output("(Upper work level  = " + Str((double)cld[10]) + ")");
-                    nc.Output("(Lower work level  = " + Str((double)cld[11]) + ")");
-                    nc.Output("(Lower guide level = " + Str((double)cld[48]) + ")");
-                    nc.Output("(Wire diameter     = " + Str((double)cld[27]) + ")");
+                    nc.WriteLine("(Rapid level       = " + Str((double)cld[9]) + ")");
+                    nc.WriteLine("(Upper guide level = " + Str((double)cld[47]) + ")");
+                    nc.WriteLine("(Upper work level  = " + Str((double)cld[10]) + ")");
+                    nc.WriteLine("(Lower work level  = " + Str((double)cld[11]) + ")");
+                    nc.WriteLine("(Lower guide level = " + Str((double)cld[48]) + ")");
+                    nc.WriteLine("(Wire diameter     = " + Str((double)cld[27]) + ")");
                     break;
 
                 case 56: // WEDMConditions
@@ -343,7 +343,7 @@ namespace SprutTechnology.SCPostprocessor
                     }
                     nc.MSub.Show(99);
                     nc.Block.Out();
-                    nc.Output("");
+                    nc.WriteLine();
                     break;
 
                 case 52: // CALLSUB

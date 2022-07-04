@@ -109,8 +109,8 @@ public partial class Postprocessor : TPostprocessor
         if (nc.G2Contour.ValuesDiffer || nc.GUV.ValuesDiffer)
         {
             nc.Block.Out();
-            nc.GInterp1.v = nc.GInterp1.v0 = 0;
-            nc.GInterp2.v = nc.GInterp2.v0 = 0;
+            nc.GInterp1.RestoreDefaultValue(false);
+            nc.GInterp2.RestoreDefaultValue(false);
         }
 
         // Compensation turn off
@@ -176,9 +176,10 @@ public partial class Postprocessor : TPostprocessor
                 break;
             case CLDEDMMotionMode.CutsOnly4D:
                 nc.GInterp1.v = 1;
-                nc.U.v = cmd.Upper.EP.X - cmd.Lower.EP.X;
-                nc.V.v = cmd.Upper.EP.Y - cmd.Lower.EP.Y;
-                nc.W.v = cmd.Upper.EP.Z - cmd.Lower.EP.Z;
+                var d = (T3DPoint)cmd.Upper.EP - cmd.Lower.EP;
+                nc.U.v = d.X;
+                nc.V.v = d.Y;
+                nc.W.v = d.Z;
                 break;
         }
 

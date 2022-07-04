@@ -16,28 +16,28 @@ namespace SprutTechnology.SCPostprocessor
         NCFile nc;
 
         /// <summary>Previous lower point X coordinate</summary>
-        double Fp1X;
+        double fp1X;
         /// <summary>Previous lower point Y coordinate</summary>
-        double Fp1Y;
+        double fp1Y;
         /// <summary>Previous lower point Z coordinate</summary>
-        double Fp1Z;
+        double fp1Z;
         /// <summary>Previous upper point X coordinate</summary>
-        double Fp2X;
+        double fp2X;
         /// <summary>Previous upper point Y coordinate</summary>
-        double Fp2Y;
+        double fp2Y;
         /// <summary>Previous upper point Z coordinate</summary>
-        double Fp2Z;
-        bool WireInserted;
+        double fp2Z;
+        bool wireInserted;
         /// <summary>If true - need output cutting coditions</summary>
-        bool ConditionsNeedOut;
+        bool conditionsNeedOut;
         /// <summary>If true - need output compensation mode</summary>
-        bool CompensNeedOut;
+        bool compensNeedOut;
         /// <summary>Displacement of the local coordinate system on the global coordinate system along the X-axis</summary>
-        double LCSX;
+        double lcsx;
         /// <summary>Displacement of the local coordinate system on the global coordinate system along the Y-axis</summary>
-        double LCSY;
+        double lcsy;
         /// <summary>Displacement of the local coordinate system on the global coordinate system along the Z-axis</summary>
-        double LCSZ;
+        double lcsz;
 
 
         #endregion
@@ -80,7 +80,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.GCompens.v = 40;
             }
             nc.GCompens.v0 = nc.GCompens.v;
-            CompensNeedOut = true;
+            compensNeedOut = true;
         }
 
         public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray cld)
@@ -106,32 +106,32 @@ namespace SprutTechnology.SCPostprocessor
             var rollR2 = (double)cld["RollR2"];
 
             // Insert and break wire commands
-            if (mode != 0 && !WireInserted)
+            if (mode != 0 && !wireInserted)
             {
                 InsertWire();
             }
-            if (mode == 0 && WireInserted)
+            if (mode == 0 && wireInserted)
             {
-                var lowerPointChanged = ep1X != Fp1X || ep1Y != Fp1Y || ep1Z != Fp1Z;
+                var lowerPointChanged = ep1X != fp1X || ep1Y != fp1Y || ep1Z != fp1Z;
                 if (lowerPointChanged)
                     BreakWire();
             }
 
             // Cutting conditions selection
-            if (ConditionsNeedOut)
+            if (conditionsNeedOut)
             {
                 nc.C.Show();
                 nc.Block.Out();
-                ConditionsNeedOut = false;
+                conditionsNeedOut = false;
             }
 
             // Compensation turn on
-            if (CompensNeedOut && nc.GCompens != 40)
+            if (compensNeedOut && nc.GCompens != 40)
             {
                 nc.GCompens.Show();
                 nc.H.Show();
                 nc.Block.Out();
-                CompensNeedOut = false;
+                compensNeedOut = false;
             }
 
             // Motion mode turn on
@@ -151,10 +151,10 @@ namespace SprutTechnology.SCPostprocessor
             }
 
             // Compensation turn off
-            if (CompensNeedOut && nc.GCompens == 40)
+            if (compensNeedOut && nc.GCompens == 40)
             {
                 nc.GCompens.Show();
-                CompensNeedOut = false;
+                compensNeedOut = false;
             }
 
             // Coordinates output
@@ -175,8 +175,8 @@ namespace SprutTechnology.SCPostprocessor
                     if (span1 == 1) // Arc
                     {
                         nc.GInterp1.v = r1 > 0d ? 3 : 2;
-                        nc.I1.Show(pc1X - Fp1X);
-                        nc.J1.Show(pc1Y - Fp1Y);
+                        nc.I1.Show(pc1X - fp1X);
+                        nc.J1.Show(pc1Y - fp1Y);
                     }
                     else // Cut
                     {
@@ -196,8 +196,8 @@ namespace SprutTechnology.SCPostprocessor
                         if (span2 == 1) // Arc
                         {
                             nc.GInterp2.v = r2 > 0d ? 3 : 2;
-                            nc.I2.Show(pc2X - Fp2X);
-                            nc.J2.Show(pc2Y - Fp2Y);
+                            nc.I2.Show(pc2X - fp2X);
+                            nc.J2.Show(pc2Y - fp2Y);
                         }
                         else // Cut
                         {
@@ -243,33 +243,33 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
 
             // Remember current coordinates
-            Fp1X = ep1X;
-            Fp1Y = ep1Y;
-            Fp1Z = ep1Z;
+            fp1X = ep1X;
+            fp1Y = ep1Y;
+            fp1Z = ep1Z;
             if (mode < 3) // 2D
             {
-                Fp2X = Fp1X;
-                Fp2Y = Fp1Y;
-                Fp2Z = Fp1Z;
+                fp2X = fp1X;
+                fp2Y = fp1Y;
+                fp2Z = fp1Z;
             }
             else // 4D
             {
-                Fp2X = ep2X;
-                Fp2Y = ep2Y;
-                Fp2Z = ep2Z;
+                fp2X = ep2X;
+                fp2Y = ep2Y;
+                fp2Z = ep2Z;
             }
         }
 
         public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
         {
             nc.C.v = nc.C.v0 = cld["K"];
-            ConditionsNeedOut = true;
+            conditionsNeedOut = true;
         }
 
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Block.Out();
-            if (WireInserted)
+            if (wireInserted)
             {
                 BreakWire();
             }
@@ -295,21 +295,21 @@ namespace SprutTechnology.SCPostprocessor
                 return;
 
             nc.GCS.Show(92);
-            nc.X1.Show(Fp1X - (cld["X"] - LCSX));
-            nc.Y1.Show(Fp1Y - (cld["Y"] - LCSY));
-            nc.Z1.Show(Fp1Z - (cld["Z"] - LCSZ));
-            LCSX = cld["X"];
-            LCSY = cld["Y"];
-            LCSZ = cld["Z"];
+            nc.X1.Show(fp1X - (cld["X"] - lcsx));
+            nc.Y1.Show(fp1Y - (cld["Y"] - lcsy));
+            nc.Z1.Show(fp1Z - (cld["Z"] - lcsz));
+            lcsx = cld["X"];
+            lcsy = cld["Y"];
+            lcsz = cld["Z"];
             nc.Block.Out();
 
             // Current coordinates updating
-            Fp1X = nc.X1;
-            Fp1Y = nc.Y1;
-            Fp1Z = nc.Z1;
-            Fp2X = Fp1X;
-            Fp2Y = Fp1Y;
-            Fp2Z = Fp1Z;
+            fp1X = nc.X1;
+            fp1Y = nc.Y1;
+            fp1Z = nc.Z1;
+            fp2X = fp1X;
+            fp2Y = fp1Y;
+            fp2Z = fp1Z;
         }
 
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
@@ -337,7 +337,7 @@ namespace SprutTechnology.SCPostprocessor
                     break;
 
                 case 51: // ENDSUB
-                    if (WireInserted)
+                    if (wireInserted)
                     {
                         BreakWire();
                     }

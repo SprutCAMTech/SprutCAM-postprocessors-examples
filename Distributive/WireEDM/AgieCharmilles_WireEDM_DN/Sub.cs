@@ -2,15 +2,15 @@ namespace SprutTechnology.SCPostprocessor;
 
 public partial class Postprocessor : TPostprocessor
 {
-    public void InsertWire()
+    private void InsertWire()
     {
         nc.Output("(Insert wire)");
-        WireInserted = true;
+        wireInserted = true;
     }
 
-    public void BreakWire()
+    private void BreakWire()
     {
         nc.Output("(Break wire)");
-        WireInserted = false;
+        wireInserted = false;
     }
 }

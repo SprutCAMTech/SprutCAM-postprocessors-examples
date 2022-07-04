@@ -19,12 +19,12 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>G40-G42</summary>
         public NumericNCWord GCompens = new NumericNCWord("G{00}", 0);
         ///<summary>G50-G52</summary>
-        public NumericNCWord GTaper = new NumericNCWord("G{00}", 0);
+        public NumericNCWord GTaper = new NumericNCWord("G{00}", 50);
         ///<summary>G60-G61</summary>
-        public NumericNCWord G2Contour = new NumericNCWord("G{00}", 0);
+        public NumericNCWord G2Contour = new NumericNCWord("G{00}", 60);
         ///<summary>G74-G75</summary>
-        public NumericNCWord GUV = new NumericNCWord("G{00}", 0);
-        public NumericNCWord GInterp1 = new NumericNCWord("G{00}", 0);
+        public NumericNCWord GUV = new NumericNCWord("G{00}", 75);
+        public NumericNCWord GInterp1 = new NumericNCWord("G{00}", 999999);
         ///<summary>Offset</summary>
         public NumericNCWord H = new NumericNCWord("H{000}", 0);
         ///<summary>Offset value</summary>
@@ -37,7 +37,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord J1 = new NumericNCWord("J{-####!###}", 0);
         /// <summary>Colon symbol</summary>
         public NumericNCWord Colon = new NumericNCWord(":{}", 0);
-        public NumericNCWord GInterp2 = new NumericNCWord("G{00}", 0);
+        public NumericNCWord GInterp2 = new NumericNCWord("G{00}", 999999);
         public NumericNCWord X2 = new NumericNCWord("X{-####!###}", 0);
         public NumericNCWord Y2 = new NumericNCWord("Y{-####!###}", 0);
         public NumericNCWord Z2 = new NumericNCWord("Z{-####!###}", 0);

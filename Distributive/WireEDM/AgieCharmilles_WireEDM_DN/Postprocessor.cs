@@ -295,6 +295,14 @@ namespace SprutTechnology.SCPostprocessor
             // TODO: NCSub.Output
         }
 
+        public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.MStop.v = 01;
+            nc.MStop.v0 = MaxReal;
+            nc.Block.Out();
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

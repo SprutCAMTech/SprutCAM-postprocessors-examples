@@ -14,29 +14,14 @@ public partial class Postprocessor : TPostprocessor
     ///<summary>Current nc-file</summary>
     NCFile nc;
 
-    /// <summary>Previous lower point X coordinate</summary>
-    double fp1X;
-    /// <summary>Previous lower point Y coordinate</summary>
-    double fp1Y;
-    /// <summary>Previous lower point Z coordinate</summary>
-    double fp1Z;
-    /// <summary>Previous upper point X coordinate</summary>
-    double fp2X;
-    /// <summary>Previous upper point Y coordinate</summary>
-    double fp2Y;
-    /// <summary>Previous upper point Z coordinate</summary>
-    double fp2Z;
+    T3DPoint previousLowerPoint = new T3DPoint();
+    T3DPoint previousUpperPoint = new T3DPoint();
+    T3DPoint localCoordinateSystem = new T3DPoint();
     bool wireInserted;
-    /// <summary>If true - need output cutting coditions</summary>
+    /// <summary>If true - need output cutting conditions</summary>
     bool conditionsNeedOut;
     /// <summary>If true - need output compensation mode</summary>
     bool compensNeedOut;
-    /// <summary>Displacement of the local coordinate system on the global coordinate system along the X-axis</summary>
-    double lcsx;
-    /// <summary>Displacement of the local coordinate system on the global coordinate system along the Y-axis</summary>
-    double lcsy;
-    /// <summary>Displacement of the local coordinate system on the global coordinate system along the Z-axis</summary>
-    double lcsz;
 
 
     #endregion
@@ -91,8 +76,7 @@ public partial class Postprocessor : TPostprocessor
         }
         if (cmd.IsRapidMove && wireInserted)
         {
-            var lowerPointChanged = cmd.Lower.EP.X != fp1X || cmd.Lower.EP.Y != fp1Y || cmd.Lower.EP.Z != fp1Z;
-            if (lowerPointChanged)
+            if (cmd.Lower.EP != previousLowerPoint)
                 BreakWire();
         }
 
@@ -154,8 +138,8 @@ public partial class Postprocessor : TPostprocessor
                 if (cmd.Lower.IsArc)
                 {
                     nc.GInterp1.v = cmd.Lower.ArcR > 0d ? 3 : 2;
-                    nc.I1.Show(cmd.Lower.Center.X - fp1X);
-                    nc.J1.Show(cmd.Lower.Center.Y - fp1Y);
+                    nc.I1.Show(cmd.Lower.Center.X - previousLowerPoint.X);
+                    nc.J1.Show(cmd.Lower.Center.Y - previousLowerPoint.Y);
                 }
                 else // Cut
                 {
@@ -175,8 +159,8 @@ public partial class Postprocessor : TPostprocessor
                     if (cmd.Upper.IsArc)
                     {
                         nc.GInterp2.v = cmd.Upper.ArcR > 0d ? 3 : 2;
-                        nc.I2.Show(cmd.Upper.Center.X - fp2X);
-                        nc.J2.Show(cmd.Upper.Center.Y - fp2Y);
+                        nc.I2.Show(cmd.Upper.Center.X - previousUpperPoint.X);
+                        nc.J2.Show(cmd.Upper.Center.Y - previousUpperPoint.Y);
                     }
                     else // Cut
                     {
@@ -222,20 +206,14 @@ public partial class Postprocessor : TPostprocessor
         nc.Block.Out();
 
         // Remember current coordinates
-        fp1X = cmd.Lower.EP.X;
-        fp1Y = cmd.Lower.EP.Y;
-        fp1Z = cmd.Lower.EP.Z;
+        previousLowerPoint = cmd.Lower.EP;
         if (!cmd.IsMultiProf4DMove && !cmd.IsCutsOnly4DMove) // 2D
         {
-            fp2X = fp1X;
-            fp2Y = fp1Y;
-            fp2Z = fp1Z;
+            previousUpperPoint = previousLowerPoint;
         }
         else // 4D
         {
-            fp2X = cmd.Upper.EP.X;
-            fp2Y = cmd.Upper.EP.Y;
-            fp2Z = cmd.Upper.EP.Z;
+            previousUpperPoint = cmd.Upper.EP;
         }
     }
 
@@ -274,21 +252,16 @@ public partial class Postprocessor : TPostprocessor
             return;
 
         nc.GCS.Show(92);
-        nc.X1.Show(fp1X - (cmd.MCS.P.X - lcsx));
-        nc.Y1.Show(fp1Y - (cmd.MCS.P.Y - lcsy));
-        nc.Z1.Show(fp1Z - (cmd.MCS.P.Z - lcsz));
-        lcsx = cmd.MCS.P.X;
-        lcsy = cmd.MCS.P.Y;
-        lcsz = cmd.MCS.P.Z;
+        var p1 = previousLowerPoint - (cmd.MCS.P - localCoordinateSystem);
+        nc.X1.Show(p1.X);
+        nc.Y1.Show(p1.Y);
+        nc.Z1.Show(p1.Z);
+        localCoordinateSystem = cmd.MCS.P;
         nc.Block.Out();
 
         // Current coordinates updating
-        fp1X = nc.X1;
-        fp1Y = nc.Y1;
-        fp1Z = nc.Z1;
-        fp2X = fp1X;
-        fp2Y = fp1Y;
-        fp2Z = fp1Z;
+        previousLowerPoint = (nc.X1, nc.Y1, nc.Z1);
+        previousUpperPoint = previousLowerPoint;
     }
 
     public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)

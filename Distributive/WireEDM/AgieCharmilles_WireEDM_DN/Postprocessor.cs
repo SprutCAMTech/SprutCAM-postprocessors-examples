@@ -58,21 +58,21 @@ public partial class Postprocessor : TPostprocessor
         nc.Block.Out();
     }
 
-    public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
+    public override void OnComment(ICLDCommentCommand cmd, CLDArray _)
     {
         var outStr = nc.Block.Form();
         nc.WriteLine(outStr + $"({cmd.CLDataS})");
     }
 
-    public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
+    public override void OnCutCom(ICLDCutComCommand cmd, CLDArray _)
     {
-        if (cld["Length"] != 23)
+        if (cmd.IsLength)
             return;
 
-        if (cld["OnOff"] == 71)
+        if (cmd.IsOn)
         {
-            nc.GCompens.v = cld["RGT"] == 24 ? 42 : 41;
-            nc.H.v = nc.H.v0 = cld["LR"];
+            nc.GCompens.v = cmd.IsRightDirection ? 42 : 41;
+            nc.H.v = nc.H.v0 = cmd.CorrectorNumber;
         }
         else
         {
@@ -82,36 +82,16 @@ public partial class Postprocessor : TPostprocessor
         compensNeedOut = true;
     }
 
-    public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray cld)
+    public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray _)
     {
-        var mode = cld["Mode"];
-        var ep1X = (double)cld["Ep1X"];
-        var ep1Y = (double)cld["Ep1Y"];
-        var ep1Z = (double)cld["Ep1Z"];
-        var ep2X = (double)cld["Ep2X"];
-        var ep2Y = (double)cld["Ep2Y"];
-        var ep2Z = (double)cld["Ep2Z"];
-        var span1 = cld["Span1"];
-        var span2 = cld["Span2"];
-        var r1 = (double)cld["R1"];
-        var r2 = (double)cld["R2"];
-        var pc1X = (double)cld["Pc1X"];
-        var pc1Y = (double)cld["Pc1Y"];
-        var pc2X = (double)cld["Pc2X"];
-        var pc2Y = (double)cld["Pc2Y"];
-        var taperAngle = (double)cld["A"];
-        var rollMode = cld["RollMode"];
-        var rollR1 = (double)cld["RollR1"];
-        var rollR2 = (double)cld["RollR2"];
-
         // Insert and break wire commands
-        if (mode != 0 && !wireInserted)
+        if (!cmd.IsRapidMove && !wireInserted)
         {
             InsertWire();
         }
-        if (mode == 0 && wireInserted)
+        if (cmd.IsRapidMove && wireInserted)
         {
-            var lowerPointChanged = ep1X != fp1X || ep1Y != fp1Y || ep1Z != fp1Z;
+            var lowerPointChanged = cmd.Lower.EP.X != fp1X || cmd.Lower.EP.Y != fp1Y || cmd.Lower.EP.Z != fp1Z;
             if (lowerPointChanged)
                 BreakWire();
         }
@@ -134,11 +114,11 @@ public partial class Postprocessor : TPostprocessor
         }
 
         // Motion mode turn on
-        if (mode == 3)
+        if (cmd.IsMultiProf4DMove)
         {
             nc.G2Contour.v = 61;
         }
-        else if (mode == 4)
+        else if (cmd.IsCutsOnly4DMove)
         {
             nc.GUV.v = 74;
         }
@@ -157,83 +137,83 @@ public partial class Postprocessor : TPostprocessor
         }
 
         // Coordinates output
-        nc.X1.v = ep1X;
-        nc.Y1.v = ep1Y;
-        nc.Z1.v = ep1Z;
-        switch (mode)
+        nc.X1.v = cmd.Lower.EP.X;
+        nc.Y1.v = cmd.Lower.EP.Y;
+        nc.Z1.v = cmd.Lower.EP.Z;
+        switch (cmd.MotionMode)
         {
-            case 0: // Rapid
+            case CLDEDMMotionMode.Rapid:
                 if (nc.X1.ValuesDiffer || nc.Y1.ValuesDiffer || nc.Z1.ValuesDiffer)
                 {
                     nc.GInterp1.v = 0;
                 }
                 break;
-            case 1: // 2Axis
-            case 2: // Taper
-            case 3: // 2Contour
-                if (span1 == 1) // Arc
+            case CLDEDMMotionMode.Plain2D:
+            case CLDEDMMotionMode.Taper2D:
+            case CLDEDMMotionMode.MultiProf4D:
+                if (cmd.Lower.IsArc)
                 {
-                    nc.GInterp1.v = r1 > 0d ? 3 : 2;
-                    nc.I1.Show(pc1X - fp1X);
-                    nc.J1.Show(pc1Y - fp1Y);
+                    nc.GInterp1.v = cmd.Lower.ArcR > 0d ? 3 : 2;
+                    nc.I1.Show(cmd.Lower.Center.X - fp1X);
+                    nc.J1.Show(cmd.Lower.Center.Y - fp1Y);
                 }
                 else // Cut
                 {
                     nc.GInterp1.v = 1;
                 }
-                if (mode == 2) // Taper
+                if (cmd.IsTaper2DMove)
                 {
-                    nc.GTaper.v = taperAngle > 0 ? 52 : 51;
-                    nc.A.Show(Abs(taperAngle));
+                    nc.GTaper.v = cmd.TaperAngle > 0 ? 52 : 51;
+                    nc.A.Show(Abs(cmd.TaperAngle));
                 }
-                else if (mode == 3) // 2Contours
+                else if (cmd.IsMultiProf4DMove)
                 {
                     nc.Colon.Show();
-                    nc.X2.v = ep2X;
-                    nc.Y2.v = ep2Y;
-                    nc.Z2.v = ep2Z;
-                    if (span2 == 1) // Arc
+                    nc.X2.v = cmd.Upper.EP.X;
+                    nc.Y2.v = cmd.Upper.EP.Y;
+                    nc.Z2.v = cmd.Upper.EP.Z;
+                    if (cmd.Upper.IsArc)
                     {
-                        nc.GInterp2.v = r2 > 0d ? 3 : 2;
-                        nc.I2.Show(pc2X - fp2X);
-                        nc.J2.Show(pc2Y - fp2Y);
+                        nc.GInterp2.v = cmd.Upper.ArcR > 0d ? 3 : 2;
+                        nc.I2.Show(cmd.Upper.Center.X - fp2X);
+                        nc.J2.Show(cmd.Upper.Center.Y - fp2Y);
                     }
                     else // Cut
                     {
                         nc.GInterp2.v = 1;
                     }
                     // CornerR
-                    if ((mode == 1 || mode == 2) && rollMode > 0)
+                    if ((cmd.IsPlain2DMove || cmd.IsTaper2DMove) && cmd.RollMode != EDMRollMode.Off)
                     {
-                        nc.RollR1.Show(rollR1);
-                        nc.RollR2.Show(rollR2);
+                        nc.RollR1.Show(cmd.Lower.RollR);
+                        nc.RollR2.Show(cmd.Upper.RollR);
                     }
                 }
                 break;
-            case 4: // 4Axis_UV
+            case CLDEDMMotionMode.CutsOnly4D:
                 nc.GInterp1.v = 1;
-                nc.U.v = ep2X - ep1X;
-                nc.V.v = ep2Y - ep1Y;
-                nc.W.v = ep2Z - ep1Z;
+                nc.U.v = cmd.Upper.EP.X - cmd.Lower.EP.X;
+                nc.V.v = cmd.Upper.EP.Y - cmd.Lower.EP.Y;
+                nc.W.v = cmd.Upper.EP.Z - cmd.Lower.EP.Z;
                 break;
         }
 
         // Motion mode turn off
-        if (mode != 2 && nc.GTaper != 50)
+        if (!cmd.IsTaper2DMove && nc.GTaper != 50)
         {
             nc.GTaper.v = 50;
         }
-        if (mode != 3 && nc.G2Contour != 60)
+        if (!cmd.IsMultiProf4DMove && nc.G2Contour != 60)
         {
             nc.G2Contour.v = 60;
         }
-        if (mode != 4 && nc.GUV != 75)
+        if (!cmd.IsCutsOnly4DMove && nc.GUV != 75)
         {
             nc.U.v = 0;
             nc.V.v = 0;
         }
         nc.Block.Out();
-        if (mode != 4 && nc.GUV != 75)
+        if (!cmd.IsCutsOnly4DMove && nc.GUV != 75)
         {
             nc.GUV.v = 75;
             nc.U.Hide();
@@ -242,10 +222,10 @@ public partial class Postprocessor : TPostprocessor
         nc.Block.Out();
 
         // Remember current coordinates
-        fp1X = ep1X;
-        fp1Y = ep1Y;
-        fp1Z = ep1Z;
-        if (mode < 3) // 2D
+        fp1X = cmd.Lower.EP.X;
+        fp1Y = cmd.Lower.EP.Y;
+        fp1Z = cmd.Lower.EP.Z;
+        if (!cmd.IsMultiProf4DMove && !cmd.IsCutsOnly4DMove) // 2D
         {
             fp2X = fp1X;
             fp2Y = fp1Y;
@@ -253,15 +233,15 @@ public partial class Postprocessor : TPostprocessor
         }
         else // 4D
         {
-            fp2X = ep2X;
-            fp2Y = ep2Y;
-            fp2Z = ep2Z;
+            fp2X = cmd.Upper.EP.X;
+            fp2Y = cmd.Upper.EP.Y;
+            fp2Z = cmd.Upper.EP.Z;
         }
     }
 
-    public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
+    public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray _)
     {
-        nc.C.v = nc.C.v0 = cld["K"];
+        nc.C.v = nc.C.v0 = cmd.FeedCode;
         conditionsNeedOut = true;
     }
 
@@ -281,25 +261,25 @@ public partial class Postprocessor : TPostprocessor
         // TODO: NCSub.Output
     }
 
-    public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
+    public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray _)
     {
         nc.Block.Out();
         nc.MStop.Show(01);
         nc.Block.Out();
     }
 
-    public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
+    public override void OnOrigin(ICLDOriginCommand cmd, CLDArray _)
     {
-        if (cld["PPFun"] != 1079)
+        if (!cmd.IsLocalCS)
             return;
 
         nc.GCS.Show(92);
-        nc.X1.Show(fp1X - (cld["X"] - lcsx));
-        nc.Y1.Show(fp1Y - (cld["Y"] - lcsy));
-        nc.Z1.Show(fp1Z - (cld["Z"] - lcsz));
-        lcsx = cld["X"];
-        lcsy = cld["Y"];
-        lcsz = cld["Z"];
+        nc.X1.Show(fp1X - (cmd.MCS.P.X - lcsx));
+        nc.Y1.Show(fp1Y - (cmd.MCS.P.Y - lcsy));
+        nc.Z1.Show(fp1Z - (cmd.MCS.P.Z - lcsz));
+        lcsx = cmd.MCS.P.X;
+        lcsy = cmd.MCS.P.Y;
+        lcsz = cmd.MCS.P.Z;
         nc.Block.Out();
 
         // Current coordinates updating
@@ -313,7 +293,7 @@ public partial class Postprocessor : TPostprocessor
 
     public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
     {
-        switch (cld["SubCode"])
+        switch (cmd.SubCode)
         {
             case 58: // TechInfo
                 nc.WriteLine("(Rapid level       = " + Str((double)cld[9]) + ")");
@@ -355,7 +335,7 @@ public partial class Postprocessor : TPostprocessor
         }
     }
 
-    public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
+    public override void OnStop(ICLDStopCommand cmd, CLDArray _)
     {
         nc.Block.Out();
         nc.MStop.Show(00);

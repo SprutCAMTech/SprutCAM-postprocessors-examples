@@ -64,6 +64,12 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
         }
 
+        public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
+        {
+            var outStr = nc.Block.Form();
+            nc.Output(outStr + $"({cmd.CLDataS})");
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

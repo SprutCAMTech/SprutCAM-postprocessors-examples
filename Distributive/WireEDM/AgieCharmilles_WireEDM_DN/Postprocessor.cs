@@ -15,7 +15,6 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Current nc-file</summary>
         NCFile nc;
 
-        double MaxReal = 999999;
         /// <summary>Previous lower point X coordinate</summary>
         double Fp1X;
         /// <summary>Previous lower point Y coordinate</summary>
@@ -49,17 +48,14 @@ namespace SprutTechnology.SCPostprocessor
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
 
             var win = CreateInputBox();
-            win.AddIntegerProp("Input program number", 1, value => nc.ProgN.v = value);
+            win.AddIntegerProp("Input program number", 1, value => nc.ProgN.Show(value));
             win.Show();
-            nc.ProgN.v0 = MaxReal;
             nc.Block.Out();
 
-            nc.GAbsInc.v = 90;
-            nc.GAbsInc.v0 = MaxReal;
-            nc.GCS.v = 92;
-            nc.GCS.v0 = MaxReal;
-            nc.X1.v0 = MaxReal;
-            nc.Y1.v0 = MaxReal;
+            nc.GAbsInc.Show(90);
+            nc.GCS.Show(92);
+            nc.X1.Show();
+            nc.Y1.Show();
             nc.Block.Out();
         }
 
@@ -124,7 +120,7 @@ namespace SprutTechnology.SCPostprocessor
             // Cutting conditions selection
             if (ConditionsNeedOut)
             {
-                nc.C.v0 = MaxReal;
+                nc.C.Show();
                 nc.Block.Out();
                 ConditionsNeedOut = false;
             }
@@ -132,8 +128,8 @@ namespace SprutTechnology.SCPostprocessor
             // Compensation turn on
             if (CompensNeedOut && nc.GCompens != 40)
             {
-                nc.GCompens.v0 = MaxReal;
-                nc.H.v0 = MaxReal;
+                nc.GCompens.Show();
+                nc.H.Show();
                 nc.Block.Out();
                 CompensNeedOut = false;
             }
@@ -157,7 +153,7 @@ namespace SprutTechnology.SCPostprocessor
             // Compensation turn off
             if (CompensNeedOut && nc.GCompens == 40)
             {
-                nc.GCompens.v0 = MaxReal;
+                nc.GCompens.Show();
                 CompensNeedOut = false;
             }
 
@@ -179,10 +175,8 @@ namespace SprutTechnology.SCPostprocessor
                     if (span1 == 1) // Arc
                     {
                         nc.GInterp1.v = r1 > 0d ? 3 : 2;
-                        nc.I1.v = pc1X - Fp1X;
-                        nc.I1.v0 = MaxReal;
-                        nc.J1.v = pc1Y - Fp1Y;
-                        nc.J1.v0 = MaxReal;
+                        nc.I1.Show(pc1X - Fp1X);
+                        nc.J1.Show(pc1Y - Fp1Y);
                     }
                     else // Cut
                     {
@@ -191,8 +185,7 @@ namespace SprutTechnology.SCPostprocessor
                     if (mode == 2) // Taper
                     {
                         nc.GTaper.v = taperAngle > 0 ? 52 : 51;
-                        nc.A.v = Abs(taperAngle);
-                        nc.A.v0 = MaxReal;
+                        nc.A.Show(Abs(taperAngle));
                     }
                     else if (mode == 3) // 2Contours
                     {
@@ -203,10 +196,8 @@ namespace SprutTechnology.SCPostprocessor
                         if (span2 == 1) // Arc
                         {
                             nc.GInterp2.v = r2 > 0d ? 3 : 2;
-                            nc.I2.v = pc2X - Fp2X;
-                            nc.I2.v0 = MaxReal;
-                            nc.J2.v = pc2Y - Fp2Y;
-                            nc.J2.v0 = MaxReal;
+                            nc.I2.Show(pc2X - Fp2X);
+                            nc.J2.Show(pc2Y - Fp2Y);
                         }
                         else // Cut
                         {
@@ -215,10 +206,8 @@ namespace SprutTechnology.SCPostprocessor
                         // CornerR
                         if ((mode == 1 || mode == 2) && rollMode > 0)
                         {
-                            nc.RollR1.v = rollR1;
-                            nc.RollR1.v0 = MaxReal;
-                            nc.RollR2.v = rollR2;
-                            nc.RollR2.v0 = MaxReal;
+                            nc.RollR1.Show(rollR1);
+                            nc.RollR2.Show(rollR2);
                         }
                     }
                     break;
@@ -248,8 +237,8 @@ namespace SprutTechnology.SCPostprocessor
             if (mode != 4 && nc.GUV != 75)
             {
                 nc.GUV.v = 75;
-                nc.U.v = nc.U.v0 = MaxReal;
-                nc.V.v = nc.V.v0 = MaxReal;
+                nc.U.Hide();
+                nc.V.Hide();
             }
             nc.Block.Out();
 
@@ -286,8 +275,7 @@ namespace SprutTechnology.SCPostprocessor
             }
 
             // M02
-            nc.MStop.v = 02;
-            nc.MStop.v0 = MaxReal;
+            nc.MStop.Show(02);
             nc.Block.Out();
             nc.Output("");
 
@@ -297,8 +285,7 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
         {
             nc.Block.Out();
-            nc.MStop.v = 01;
-            nc.MStop.v0 = MaxReal;
+            nc.MStop.Show(01);
             nc.Block.Out();
         }
 
@@ -307,14 +294,10 @@ namespace SprutTechnology.SCPostprocessor
             if (cld[4] != 1079)
                 return;
 
-            nc.GCS.v = 92;
-            nc.GCS.v0 = MaxReal;
-            nc.X1.v = Fp1X - (cld[1] - LCSX);
-            nc.X1.v0 = MaxReal;
-            nc.Y1.v = Fp1Y - (cld[2] - LCSY);
-            nc.Y1.v0 = MaxReal;
-            nc.Z1.v = Fp1Z - (cld[3] - LCSZ);
-            nc.Z1.v0 = MaxReal;
+            nc.GCS.Show(92);
+            nc.X1.Show(Fp1X - (cld[1] - LCSX));
+            nc.Y1.Show(Fp1Y - (cld[2] - LCSY));
+            nc.Z1.Show(Fp1Z - (cld[3] - LCSZ));
             LCSX = cld[1];
             LCSY = cld[2];
             LCSZ = cld[3];
@@ -343,16 +326,13 @@ namespace SprutTechnology.SCPostprocessor
                     break;
 
                 case 56: // WEDMConditions
-                    nc.H.v = cld[4]; // Offset code
-                    nc.H.v0 = MaxReal;
-                    nc.HValue.v = cld[5]; // Offset value
-                    nc.HValue.v0 = MaxReal;
+                    nc.H.Show(cld[4]); // Offset code
+                    nc.HValue.Show(cld[5]); // Offset value
                     nc.Block.Out();
                     break;
 
                 case 50: // STARTSUB
-                    nc.BlockN.v = nc.ProgN + cld[2];
-                    nc.BlockN.v0 = MaxReal;
+                    nc.BlockN.Show(nc.ProgN + cld[2]);
                     nc.Block.Out();
                     break;
 
@@ -361,17 +341,14 @@ namespace SprutTechnology.SCPostprocessor
                     {
                         BreakWire();
                     }
-                    nc.MSub.v = 99;
-                    nc.MSub.v0 = MaxReal;
+                    nc.MSub.Show(99);
                     nc.Block.Out();
                     nc.Output("");
                     break;
 
                 case 52: // CALLSUB
-                    nc.MSub.v = 98;
-                    nc.MSub.v0 = MaxReal;
-                    nc.SubN.v = nc.ProgN + cld[2];
-                    nc.SubN.v0 = MaxReal;
+                    nc.MSub.Show(98);
+                    nc.SubN.Show(nc.ProgN + cld[2]);
                     nc.Block.Out();
                     // Idle sub call
                     // TODO: NCSub.Output(cld[2], 0)
@@ -382,8 +359,7 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
         {
             nc.Block.Out();
-            nc.MStop.v = 00;
-            nc.MStop.v0 = MaxReal;
+            nc.MStop.Show(00);
             nc.Block.Out();
         }
 

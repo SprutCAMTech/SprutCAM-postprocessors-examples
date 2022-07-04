@@ -70,6 +70,24 @@ namespace SprutTechnology.SCPostprocessor
             nc.Output(outStr + $"({cmd.CLDataS})");
         }
 
+        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
+        {
+            if (cld[2] != 23)
+                return;
+
+            if (cld[1] == 71)
+            {
+                nc.GCompens.v = cld[10] == 24 ? 42 : 41;
+                nc.H.v = nc.H.v0 = cld[3];
+            }
+            else
+            {
+                nc.GCompens.v = 40;
+            }
+            nc.GCompens.v0 = nc.GCompens.v;
+            CompensNeedOut = 1;
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

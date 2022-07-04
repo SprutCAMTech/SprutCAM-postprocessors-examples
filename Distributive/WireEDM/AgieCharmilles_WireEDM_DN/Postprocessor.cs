@@ -67,13 +67,13 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
         {
-            if (cld[2] != 23)
+            if (cld["Length"] != 23)
                 return;
 
-            if (cld[1] == 71)
+            if (cld["OnOff"] == 71)
             {
-                nc.GCompens.v = cld[10] == 24 ? 42 : 41;
-                nc.H.v = nc.H.v0 = cld[3];
+                nc.GCompens.v = cld["RGT"] == 24 ? 42 : 41;
+                nc.H.v = nc.H.v0 = cld["LR"];
             }
             else
             {
@@ -86,24 +86,24 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray cld)
         {
             var mode = cld["Mode"];
-            var ep1X = cld["Ep1X"];
-            var ep1Y = cld["Ep1Y"];
-            var ep1Z = cld["Ep1Z"];
-            var ep2X = cld["Ep2X"];
-            var ep2Y = cld["Ep2Y"];
-            var ep2Z = cld["Ep2Z"];
+            var ep1X = (double)cld["Ep1X"];
+            var ep1Y = (double)cld["Ep1Y"];
+            var ep1Z = (double)cld["Ep1Z"];
+            var ep2X = (double)cld["Ep2X"];
+            var ep2Y = (double)cld["Ep2Y"];
+            var ep2Z = (double)cld["Ep2Z"];
             var span1 = cld["Span1"];
             var span2 = cld["Span2"];
-            var r1 = cld["R1"];
-            var r2 = cld["R2"];
-            var pc1X = cld["Pc1X"];
-            var pc1Y = cld["Pc1Y"];
-            var pc2X = cld["Pc2X"];
-            var pc2Y = cld["Pc2Y"];
+            var r1 = (double)cld["R1"];
+            var r2 = (double)cld["R2"];
+            var pc1X = (double)cld["Pc1X"];
+            var pc1Y = (double)cld["Pc1Y"];
+            var pc2X = (double)cld["Pc2X"];
+            var pc2Y = (double)cld["Pc2Y"];
             var taperAngle = (double)cld["A"];
             var rollMode = cld["RollMode"];
-            var rollR1 = cld["RollR1"];
-            var rollR2 = cld["RollR2"];
+            var rollR1 = (double)cld["RollR1"];
+            var rollR2 = (double)cld["RollR2"];
 
             // Insert and break wire commands
             if (mode != 0 && !WireInserted)
@@ -262,7 +262,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
         {
-            nc.C.v = nc.C.v0 = cld[2];
+            nc.C.v = nc.C.v0 = cld["K"];
             ConditionsNeedOut = true;
         }
 
@@ -291,16 +291,16 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
         {
-            if (cld[4] != 1079)
+            if (cld["PPFun"] != 1079)
                 return;
 
             nc.GCS.Show(92);
-            nc.X1.Show(Fp1X - (cld[1] - LCSX));
-            nc.Y1.Show(Fp1Y - (cld[2] - LCSY));
-            nc.Z1.Show(Fp1Z - (cld[3] - LCSZ));
-            LCSX = cld[1];
-            LCSY = cld[2];
-            LCSZ = cld[3];
+            nc.X1.Show(Fp1X - (cld["X"] - LCSX));
+            nc.Y1.Show(Fp1Y - (cld["Y"] - LCSY));
+            nc.Z1.Show(Fp1Z - (cld["Z"] - LCSZ));
+            LCSX = cld["X"];
+            LCSY = cld["Y"];
+            LCSZ = cld["Z"];
             nc.Block.Out();
 
             // Current coordinates updating
@@ -314,7 +314,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
         {
-            switch (cld[1])
+            switch (cld["SubCode"])
             {
                 case 58: // TechInfo
                     nc.WriteLine("(Rapid level       = " + Str((double)cld[9]) + ")");

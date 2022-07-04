@@ -303,6 +303,33 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
         }
 
+        public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
+        {
+            if (cld[4] != 1079)
+                return;
+
+            nc.GCS.v = 92;
+            nc.GCS.v0 = MaxReal;
+            nc.X1.v = Fp1X - (cld[1] - LCSX);
+            nc.X1.v0 = MaxReal;
+            nc.Y1.v = Fp1Y - (cld[2] - LCSY);
+            nc.Y1.v0 = MaxReal;
+            nc.Z1.v = Fp1Z - (cld[3] - LCSZ);
+            nc.Z1.v0 = MaxReal;
+            LCSX = cld[1];
+            LCSY = cld[2];
+            LCSZ = cld[3];
+            nc.Block.Out();
+
+            // Current coordinates updating
+            Fp1X = nc.X1;
+            Fp1Y = nc.Y1;
+            Fp1Z = nc.Z1;
+            Fp2X = Fp1X;
+            Fp2Y = Fp1Y;
+            Fp2Z = Fp1Z;
+        }
+
         public override void StopOnCLData()
         {
             // Do nothing, just to be possible to use CLData breakpoints

@@ -41,13 +41,13 @@ public partial class Postprocessor : TPostprocessor
         nc.Block.Out();
     }
 
-    public override void OnComment(ICLDCommentCommand cmd, CLDArray _)
+    public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
     {
         var outStr = nc.Block.Form();
         nc.WriteLine(outStr + $"({cmd.CLDataS})");
     }
 
-    public override void OnCutCom(ICLDCutComCommand cmd, CLDArray _)
+    public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
     {
         if (cmd.IsLength)
             return;
@@ -65,7 +65,7 @@ public partial class Postprocessor : TPostprocessor
         compensNeedOut = true;
     }
 
-    public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray _)
+    public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray cld)
     {
         // Insert and break wire commands
         if (!cmd.IsRapidMove && !wireInserted)
@@ -216,7 +216,7 @@ public partial class Postprocessor : TPostprocessor
         }
     }
 
-    public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray _)
+    public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
     {
         nc.C.Hide(cmd.FeedCode);
         conditionsNeedOut = true;
@@ -238,14 +238,14 @@ public partial class Postprocessor : TPostprocessor
         // TODO: NCSub.Output
     }
 
-    public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray _)
+    public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
     {
         nc.Block.Out();
         nc.MStop.Show(01);
         nc.Block.Out();
     }
 
-    public override void OnOrigin(ICLDOriginCommand cmd, CLDArray _)
+    public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
     {
         if (!cmd.IsLocalCS)
             return;
@@ -307,7 +307,7 @@ public partial class Postprocessor : TPostprocessor
         }
     }
 
-    public override void OnStop(ICLDStopCommand cmd, CLDArray _)
+    public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
     {
         nc.Block.Out();
         nc.MStop.Show(00);

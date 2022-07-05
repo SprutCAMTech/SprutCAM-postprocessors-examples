@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" attributeFormDefault="unqualified" vc:minVersion="1.1">
+	<xs:element name="Settings">
+		<xs:complexType>
+			<xs:sequence maxOccurs="1">
+				<xs:element name="Description">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Comments" type="xs:string"/>
+							<xs:element name="CNCSystem" type="xs:string"/>
+							<xs:element name="MachineName" type="xs:string"/>
+							<xs:element name="Authors" type="xs:string"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Common">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="BreakArcs">
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="No"/>
+										<xs:enumeration value="Cuts"/>
+										<xs:enumeration value="Halfs"/>
+										<xs:enumeration value="Quaters"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="BreakHelix" type="xs:boolean"/>
+							<xs:element name="ArcTolerance" type="xs:double"/>
+							<xs:element name="MaxCircleRadius" type="xs:double"/>
+							<xs:element name="DecimalSeparator">
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="."/>
+										<xs:enumeration value=","/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="UserDefinedParameters">
+					<xs:complexType>
+						<xs:choice minOccurs='0' maxOccurs="unbounded">
+							<xs:element name="Group" type="Group"/>
+							<xs:element name="Parameter" type="ParameterType"/>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="Version" type="xs:decimal" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:complexType name="Group">
+		<xs:choice minOccurs='0' maxOccurs="unbounded">
+			<xs:element name="Group" type="Group"/>
+			<xs:element name="Parameter" type="ParameterType"/>		
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string" use="required"/>
+		<xs:attribute name="Caption" use="required">
+			<xs:simpleType>
+				<xs:union memberTypes="xs:string CaptionEnum"/>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:simpleType name="ValueType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="String"/>
+			<xs:enumeration value="Integer"/>
+			<xs:enumeration value="Double"/>
+			<xs:enumeration value="FileName"/>
+			<xs:enumeration value="FolderName"/>
+			<xs:enumeration value="Boolean"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CaptionEnum">
+		 <xs:restriction base="xs:string">
+			<xs:enumeration value="$(OutputFiles)"/>
+			<xs:enumeration value="$(NCFileExt)"/>
+			<xs:enumeration value="$(NCFileName)"/>
+			<xs:enumeration value="$(NCFilesDir)"/>
+			<xs:enumeration value="$(NCProgNumber)"/>
+		 </xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="ParameterType" mixed="true">
+		<xs:sequence minOccurs="0">
+			<xs:element name="Value" minOccurs="0" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:simpleContent>
+						<xs:extension base="xs:string">
+							<xs:attribute name="Default" type="xs:boolean"/>
+							<xs:attribute name="Caption">
+								<xs:simpleType>
+									<xs:union memberTypes="xs:string CaptionEnum"/>
+								</xs:simpleType>
+							</xs:attribute>
+						</xs:extension>
+					</xs:simpleContent>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="ID" type="xs:string" use="required"/>
+		<xs:attribute name="Caption" use="required">
+			<xs:simpleType>
+				<xs:union memberTypes="xs:string CaptionEnum"/>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="Type" type="ValueType" use="required"/>
+		<xs:attribute name="FilesFilter" type="xs:string" use="optional"/>
+		<xs:attribute name="Editable" type="xs:boolean" use="optional"/>
+		<xs:attribute name="Persistent" type="xs:boolean" use="optional"/>
+	</xs:complexType>
+</xs:schema>

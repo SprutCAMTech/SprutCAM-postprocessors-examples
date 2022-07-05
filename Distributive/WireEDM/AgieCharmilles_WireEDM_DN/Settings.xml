@@ -4,9 +4,9 @@
 
 <Settings Version="1.0">
     <Description>
-        <Comments></Comments>
-        <CNCSystem></CNCSystem>
-        <MachineName></MachineName>
+        <Comments />
+        <CNCSystem />
+        <MachineName />
         <Authors>Lipatov Alexander</Authors>
     </Description>
     <Common>
@@ -21,6 +21,7 @@
     <UserDefinedParameters>
         <Group ID="OutFiles" Caption="$(OutputFiles)">
             <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+            <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
         </Group>
     </UserDefinedParameters>
 </Settings>

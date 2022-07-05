@@ -31,9 +31,7 @@ public partial class Postprocessor : TPostprocessor
         nc = new NCFile();
         nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
 
-        var win = CreateInputBox();
-        win.AddIntegerProp("Input program number", 1, value => nc.ProgN.Show(value));
-        win.Show();
+        nc.ProgN.Show(Settings.Params.Int["OutFiles.NCProgNumber"]);
         nc.Block.Out();
 
         nc.GAbsInc.Show(90);

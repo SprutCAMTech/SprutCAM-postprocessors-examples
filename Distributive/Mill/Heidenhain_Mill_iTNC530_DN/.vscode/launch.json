@@ -13,7 +13,7 @@
             "args": [
                 "-cldviewermode", 
                 "-sharedfile:STInpCoreOfDebugger", 
-                "-postfile:\"${workspaceFolder}\\bin\\Debug\\net5.0-windows\\${workspaceFolderBasename}.dll\""
+                "-postfile:\"${workspaceFolder}\\bin\\Debug\\${workspaceFolderBasename}.dll\""
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
@@ -28,8 +28,8 @@
             "program": "${env:SprutCAMDir}/DotNet/InpCore.exe",
             "args": [
                 "-batchmode", 
-                "-cldfile:\"c:\\Users\\Public\\Documents\\SprutCAM\\Version 15\\Projects\\Examples\\Milling\\3+2D\\3+2.stc\"",
-                "-postfile:\"${workspaceFolder}\\bin\\Debug\\net5.0-windows\\${workspaceFolderBasename}.dll\"",
+                "-cldfile:\"c:\\Users\\Public\\Documents\\SprutCAM\\Version 16\\Projects\\Examples\\Milling\\3+2D\\3+2.stc\"",
+                "-postfile:\"${workspaceFolder}\\bin\\Debug\\${workspaceFolderBasename}.dll\"",
                 "-settingsfile:\"${workspaceFolder}\\Settings.xml"
                 ],
             "cwd": "${workspaceFolder}",

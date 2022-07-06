@@ -1,12 +1,4 @@
-using System;
-using System.IO;
-using System.Text;
-using System.Diagnostics;
 using System.Collections;
-using static SprutTechnology.STDefLib.STDef;
-using static SprutTechnology.SCPostprocessor.CommonFuncs;
-using SprutTechnology.VecMatrLib;
-using static SprutTechnology.VecMatrLib.VML;
 
 namespace SprutTechnology.SCPostprocessor
 {
@@ -42,6 +34,28 @@ namespace SprutTechnology.SCPostprocessor
         }
     }
 
+    public struct ProbingCycleState
+    {
+        int LastComponentNumber;
+        int LastFeatureNumber;
+
+        public void Init() {
+            LastComponentNumber = -1;;
+            LastFeatureNumber = -1;
+        }
+
+        public int CalcW(int component, int feature) {
+            int result;
+            if (component>LastComponentNumber)
+                result = 2;
+            else
+                result = 1;
+            LastComponentNumber = component;
+            LastFeatureNumber = feature;
+            return result;
+        }
+    }
+
     public partial class Postprocessor: TPostprocessor
     {
         #region Common variables definition
@@ -56,7 +70,12 @@ namespace SprutTechnology.SCPostprocessor
         int planeSign = 1;
         ///<summary>Current plane third coordinate 3, 2 or 1</summary>
         int planeZIndex = 3;
- 
+
+        /// <summary>
+        /// To remember current state for the probing cycles.
+        /// </summary>
+        ProbingCycleState probingCycle;
+
         #endregion
 
         public Postprocessor()
@@ -83,6 +102,8 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartProject(ICLDProject prj)
         {
+            probingCycle.Init();
+
             mainNC = new NCFile();
             nc = mainNC;
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
@@ -541,6 +562,300 @@ namespace SprutTechnology.SCPostprocessor
                         break;
                 }
             }
+        }
+
+        private void OutG65_P(int P, params (string, double) [] pairs)
+        {
+            OutG65_P(P, null, pairs);
+        }
+        
+        private void OutG65_P(int P, string comment, params (string, double)[] pairs)
+        {
+            string res = nc.GCycle.ToString(65) + " " + nc.PSubCall.ToString(P);
+            for (int i = 0; i < pairs.Length; i++) {
+                res += " " + pairs[i].Item1 + nc.Number.ToString(pairs[i].Item2);
+            }
+            if (!string.IsNullOrEmpty(comment))
+                res += $" ( {comment} )";
+            nc.OutWithN(res);
+        }
+
+        private int GetWorkOffsetNumber(ICLDExtCycleCommand cmd)
+        {   var OffsetNumber = -1;
+            var WCSOffsetType = cmd.Prm.Int[-10];
+            if (WCSOffsetType == 1 || WCSOffsetType == 2)
+            {
+                var WCSOffsetValue = cmd.Prm.Int[-11];
+                switch (WCSOffsetValue)
+                {
+                    case 54:
+                        OffsetNumber = 1;
+                        break;
+                    case 55:
+                        OffsetNumber = 2;
+                        break;
+                    case 56:
+                        OffsetNumber = 3;
+                        break;
+                    case 57:
+                        OffsetNumber = 4;
+                        break;
+                    case 58:
+                        OffsetNumber = 5;
+                        break;
+                    case 59:
+                        OffsetNumber = 6;
+                        break;
+                    default:
+                        OffsetNumber = WCSOffsetValue;
+                        break;
+                }
+            }
+            return OffsetNumber;
+        }
+
+        public void GenerateDoubleWall(int PCom, ICLDExtCycleCommand cmd)
+        {
+            var CountStep1 = cmd.Prm.Int[-63];
+            var CountStep2 = cmd.Prm.Int[-64];
+            if (CountStep1>2 || CountStep2>2)
+            {
+                Log.Error("Measure count is not available for this machining center"); 
+            }
+            else
+            {
+                var ax1 = "";
+                var ax2 = "";
+                var IncDistanceName1 = "";
+                var IncDistanceName2 = "";
+                var AxParamInd1 = 0;
+                var AxParamInd2 = 0;
+                if (IsEqD(Abs(cmd.Prm.Flt[-103]), 1, Zero))
+                {
+                    ax1 = "X";
+                    AxParamInd1 = -100;
+                    IncDistanceName1 = "I";
+                }
+                else if (IsEqD(Abs(cmd.Prm.Flt[-104]), 1, Zero))
+                {
+                    ax1 = "Y";
+                    AxParamInd1 = -101;
+                    IncDistanceName1 = "J";
+                }  
+                if (IsEqD(Abs(cmd.Prm.Flt[-103-(CountStep1*6)]), 1, Zero))
+                {
+                    ax2 = "X";
+                    AxParamInd2 = -100-(CountStep1*6);
+                    IncDistanceName2 = "I";
+                }
+                else if (IsEqD(Abs(cmd.Prm.Flt[-104-(CountStep1*6)]), 1, Zero))
+                {
+                    ax2 = "Y";
+                    AxParamInd2 = -101-(CountStep1*6);
+                    IncDistanceName2 = "J";
+                } 
+                if (ax1=="" || ax2=="" || ax1==ax2)
+                {
+                    Log.Error("Target vector is not in standard direction");  
+                }  
+                else
+                {
+                    var OffsetNumber = GetWorkOffsetNumber(cmd);
+                    if (OffsetNumber!=-1)
+                    {
+                        if (CountStep1 == 2 && CountStep2 == 2)
+                        {
+                            OutG65_P(PCom, (ax1, cmd.Prm.Flt[AxParamInd1]), (ax2, cmd.Prm.Flt[AxParamInd2]), ("B", cmd.Prm.Flt[12]),
+                                           (IncDistanceName1, cmd.Prm.Flt[-56]), (IncDistanceName2, cmd.Prm.Flt[-57]),
+                                           ("M", cmd.Prm.Flt[11]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));
+                        }
+                        else if (CountStep1 < 2 && CountStep2 == 2)
+                        {
+                            OutG65_P(PCom, (ax1, cmd.Prm.Flt[AxParamInd1]), (ax2, cmd.Prm.Flt[AxParamInd2]), ("B", cmd.Prm.Flt[12]),
+                                           (IncDistanceName2, cmd.Prm.Flt[-57]), ("M", cmd.Prm.Flt[11]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));   
+                        }
+                        else if (CountStep1 == 2 && CountStep2 < 2)
+                        {
+                            OutG65_P(PCom, (ax1, cmd.Prm.Flt[AxParamInd1]), (ax2, cmd.Prm.Flt[AxParamInd2]), ("B", cmd.Prm.Flt[12]),
+                                           (IncDistanceName1, cmd.Prm.Flt[-56]), ("M", cmd.Prm.Flt[11]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));   
+                        }
+                        else
+                        {
+                            OutG65_P(PCom, (ax1, cmd.Prm.Flt[AxParamInd1]), (ax2, cmd.Prm.Flt[AxParamInd2]), ("B", cmd.Prm.Flt[12]),
+                                           ("M", cmd.Prm.Flt[11]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));     
+                        }
+                    }
+                    else
+                    {
+                        Log.Error("Current WCS offset mode is not available for this machining center"); 
+                    }
+                }
+            }
+        }
+
+        public override void OnProbeExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
+        {
+            //G65 P9819 C200. D25. K–10. B4. A45. 
+            if (!cmd.IsCall)
+                return;
+            switch (cmd.Prm.Int[-2])
+            {
+                case -500: // Probe On/Off
+                    if (cmd.Prm.Bol[-3]) { // Probe On
+                        OutG65_P(9832, "Probe ON");
+                    } else { // Probe Off
+                        OutG65_P(9833, "Probe OFF");
+                    }
+                    break;
+                case 10: //Hole P9814 (recrod)
+                    OutG65_P(9814, ("D", cmd.Prm.Flt[-52]), ("H", cmd.Prm.Flt[11]), ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), 
+                        ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    break;
+                case 11: //Boss P9814 (recrod)
+                    OutG65_P(9814, ("D", cmd.Prm.Flt[-52]), ("Z", cmd.Prm.Flt[-51]), ("R", cmd.Prm.Flt[-56]), ("H", cmd.Prm.Flt[11]), 
+                                    ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    break;
+                case 12: //Hole Protected P9814 (recrod)
+                    OutG65_P(9814, ("D", cmd.Prm.Flt[-52]), ("Z", cmd.Prm.Flt[-51]), ("-R", cmd.Prm.Flt[-56]), ("H", cmd.Prm.Flt[11]), 
+                                    ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    break;
+                case 13: //Single Surface P9811 (recrod)
+                    if (IsEqD(Abs(cmd.Prm.Flt[-103]), 1, Zero))
+                    {
+                        OutG65_P(9811, ("X", cmd.Prm.Flt[-100]), ("H", cmd.Prm.Flt[11]), ("M", cmd.Prm.Flt[12]), 
+                                       ("Q", cmd.Prm.Flt[10]), ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    }
+                    else if (IsEqD(Abs(cmd.Prm.Flt[-104]), 1, Zero))
+                    {
+                        OutG65_P(9811, ("Y", cmd.Prm.Flt[-101]), ("H", cmd.Prm.Flt[11]), ("M", cmd.Prm.Flt[12]), 
+                                       ("Q", cmd.Prm.Flt[10]), ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    }
+                    else if (IsEqD(Abs(cmd.Prm.Flt[-105]), 1, Zero))
+                    {
+                        OutG65_P(9811, ("Z", cmd.Prm.Flt[-102]), ("H", cmd.Prm.Flt[11]), ("M", cmd.Prm.Flt[12]), 
+                                       ("Q", cmd.Prm.Flt[10]), ("W", probingCycle.CalcW(cmd.Prm.Int[-24], cmd.Prm.Int[-25])));
+                    }
+                    else
+                    {
+                        Log.Error("Target vector is not in standard direction");
+                    }
+                    break;
+                case 14: //Web P9812 (WCS offset)
+                    var ax = "";
+                    var AxParamInd = 0;
+                    if (IsEqD(Abs(cmd.Prm.Flt[-103]), 1, Zero))
+                    {
+                        ax = "X";
+                        AxParamInd = -100;
+                    }
+                    else if (IsEqD(Abs(cmd.Prm.Flt[-104]), 1, Zero))
+                    {
+                        ax = "Y";
+                        AxParamInd = -101;
+                    }
+                    if (ax!="")
+                    {
+                        var OffsetNumber = GetWorkOffsetNumber(cmd);
+                        if (OffsetNumber!=-1)
+                        {
+                            OutG65_P(9812, (ax, cmd.Prm.Flt[AxParamInd]), ("Z", cmd.Prm.Flt[-51]), ("R", cmd.Prm.Flt[-56]), ("H", cmd.Prm.Flt[11]), 
+                                    ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));
+                        }
+                        else
+                        {
+                            Log.Error("Current WCS offset mode is not available for this machining center"); 
+                        }
+ 
+                    }
+                    else
+                    {
+                        Log.Error("Target vector is not in standard direction");    
+                    }
+
+                    break;
+                case 15: //Pocket P9812 (WCS offset)
+                    ax = "";
+                    AxParamInd = 0;
+                    if (IsEqD(Abs(cmd.Prm.Flt[-103]), 1, Zero))
+                    {
+                        ax = "X";
+                        AxParamInd = -100;
+                    }
+                    else if (IsEqD(Abs(cmd.Prm.Flt[-104]), 1, Zero))
+                    {
+                        ax = "Y";
+                        AxParamInd = -101;
+                    }
+                    if (ax!="")
+                    {
+                        var OffsetNumber = GetWorkOffsetNumber(cmd);
+                        if (OffsetNumber!=-1)
+                        {
+                            OutG65_P(9812, (ax, cmd.Prm.Flt[AxParamInd]), ("H", cmd.Prm.Flt[11]), 
+                                    ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));
+                        }
+                        else
+                        {
+                            Log.Error("Current WCS offset mode is not available for this machining center"); 
+                        }
+ 
+                    }
+                    else
+                    {
+                        Log.Error("Target vector is not in standard direction");    
+                    }
+
+                    break;
+                case 16: //PocketProtected P9812 (WCS offset)
+                    ax = "";
+                    AxParamInd = 0;
+                    if (IsEqD(Abs(cmd.Prm.Flt[-103]), 1, Zero))
+                    {
+                        ax = "X";
+                        AxParamInd = -100;
+                    }
+                    else if (IsEqD(Abs(cmd.Prm.Flt[-104]), 1, Zero))
+                    {
+                        ax = "Y";
+                        AxParamInd = -101;
+                    }
+                    if (ax!="")
+                    {
+                        var OffsetNumber = GetWorkOffsetNumber(cmd);
+                        if (OffsetNumber!=-1)
+                        {
+                            OutG65_P(9812, (ax, cmd.Prm.Flt[AxParamInd]), ("Z", cmd.Prm.Flt[-51]), ("-R", cmd.Prm.Flt[-56]), ("H", cmd.Prm.Flt[11]), 
+                                    ("M", cmd.Prm.Flt[12]), ("Q", cmd.Prm.Flt[10]), ("S", OffsetNumber));
+                        }
+                        else
+                        {
+                            Log.Error("Current WCS offset mode is not available for this machining center"); 
+                        }
+ 
+                    }
+                    else
+                    {
+                        Log.Error("Target vector is not in standard direction");    
+                    }
+
+                    break;
+                case 17: //Internal Corner P9815 (WCS offset)
+                    GenerateDoubleWall(9815, cmd);
+                    break;
+                case 18: //External Corner P9816 (WCS offset)
+                    GenerateDoubleWall(9816, cmd);
+                    break;
+                case 100: //Z calibration P9801 (tool probing)
+                    OutG65_P(9801, ("Z", cmd.Prm.Flt[-102]), ("T", cmd.Prm.Int[-12]));
+                    break;
+                case 101: //X,Y calibration P9802 (tool probing)
+                    OutG65_P(9802, ("D", cmd.Prm.Flt[-52]));
+                    break;
+                case 102: //Radius calibration P9804 (tool probing)
+                    OutG65_P(9804, ("D", cmd.Prm.Flt[-52]));
+                    break;
+            }
+            
         }
 
         public override void OnStop(ICLDStopCommand cmd, CLDArray cld)

@@ -1,12 +1,4 @@
-using System;
-using System.IO;
 using System.Collections;
-using System.Text;
-using System.Diagnostics;
-using static SprutTechnology.STDefLib.STDef;
-using static SprutTechnology.SCPostprocessor.CommonFuncs;
-using SprutTechnology.VecMatrLib;
-using static SprutTechnology.VecMatrLib.VML;
 
 namespace SprutTechnology.SCPostprocessor
 {

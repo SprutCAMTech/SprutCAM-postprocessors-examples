@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <OutDir>bin\Debug\</OutDir>
+    <PublishDir>bin\Debug\</PublishDir>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Settings.xml"/>
@@ -14,6 +18,14 @@
     <Reference Include="SCPostprocessor">
       <HintPath>$(SprutCAMDir)\DotNet\SCPostprocessor.dll</HintPath>      
     </Reference>
+    <Using Include="System" />
+    <Using Include="System.Text" />
+    <Using Include="System.Diagnostics" />
+    <Using Include="SprutTechnology.STDefLib" />
+    <Using Include="SprutTechnology.VecMatrLib"/>
+    <Using Include="SprutTechnology.STDefLib.STDef" Static="true" />
+    <Using Include="SprutTechnology.VecMatrLib.VML" Static="true" />
+    <Using Include="SprutTechnology.SCPostprocessor.CommonFuncs" Static="true" />
   </ItemGroup>
 
 </Project>

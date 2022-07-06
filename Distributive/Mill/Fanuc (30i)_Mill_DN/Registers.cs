@@ -144,6 +144,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
         public NumericNCWord MCBrake = new NumericNCWord("M{###}", 596);
 
+        ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
+        public NumericNCWord Number = new NumericNCWord("{#####.###}", 0);
+
         ///<summary>Text comment at the end of the block</summary>
         public TextNCWord TrailingComment = new TextNCWord("( ", "", " )");
 
@@ -195,6 +198,7 @@ namespace SprutTechnology.SCPostprocessor
                 MBBrake,
                 MCBrake,
                 PSubCall,
+                Number,
                 TrailingComment
             );
             OnInit();

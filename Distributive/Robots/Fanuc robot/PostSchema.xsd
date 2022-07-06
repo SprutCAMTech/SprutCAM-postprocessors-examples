@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- edited with XMLSpy v2021 rel. 2 sp1 (x64) (http://www.altova.com) by Andrey (SC) -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" attributeFormDefault="unqualified" vc:minVersion="1.1">
 	<xs:element name="Settings">
 		<xs:complexType>
@@ -110,5 +109,7 @@
 		</xs:attribute>
 		<xs:attribute name="Type" type="ValueType" use="required"/>
 		<xs:attribute name="FilesFilter" type="xs:string" use="optional"/>
+		<xs:attribute name="Editable" type="xs:boolean" use="optional"/>
+		<xs:attribute name="Persistent" type="xs:boolean" use="optional"/>
 	</xs:complexType>
 </xs:schema>

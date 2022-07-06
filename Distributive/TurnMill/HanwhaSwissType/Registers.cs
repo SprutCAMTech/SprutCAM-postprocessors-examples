@@ -12,6 +12,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Automatic block numbers counter</summary>
         public CountingNCWord BlockN = new CountingNCWord("N{######}", 1, 1, 1);
 
+        ///<summary>Cycle block numbers counter</summary>
+        public NumericNCWord CycleBlockN = new NumericNCWord("N{######}",0);
+
         ///<summary>G90, G91 - absolute or incremental motion mode selection</summary>
         public NumericNCWord GAbsInc = new NumericNCWord("G{##}", 90);
 
@@ -20,9 +23,6 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>G54-G59 - current workpiece coordinate system number</summary>
         public NumericNCWord GWCS = new NumericNCWord("G{##}", 54);
-
-        ///<summary>G68.2, G69 - Local coordinate system activation-deactivation</summary>
-        public NumericNCWord GLCS = new NumericNCWord("G{##.#}", 69);
 
         ///<summary>G04 - delay of nc programm execution</summary>
         public NumericNCWord GDelay = new NumericNCWord("G{00}", 04);
@@ -51,23 +51,17 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>G00, G01, G02, G03 - current mode of an interpolation</summary>
         public NumericNCWord GInterp = new NumericNCWord("G{00}", 0);
 
+        ///<summary>G12.1, G13.1, G07.1 - cylindrical or polar interpolation mode</summary>
+        public NumericNCWord GPolarOrCyl = new NumericNCWord("G{00.#}", 0);
+
         ///<summary>G28 - return to home position, or G53 - physic axes motion</summary>
         public NumericNCWord GHome = new NumericNCWord("G{##}", 28);
 
         ///<summary>G80, G81, G82... - canned cycle code</summary>
-        public NumericNCWord GCycle = new NumericNCWord("G{##}", 80);
-
-        ///<summary>G43, G43.4, G49 - length compensation mode: on, off</summary>
-        public NumericNCWord GLCompens = new NumericNCWord("G{##.#}", 49);
-
-        ///<summary>H - length corretor number</summary>
-        public NumericNCWord HLCompens = new NumericNCWord("H{###}", 0);
+        public NumericNCWord GCycle = new NumericNCWord("G{##.#}", 80);
 
         ///<summary>G40, G41, G42 - radius compensation mode: off, left, right</summary>
         public NumericNCWord GRCompens = new NumericNCWord("G{##}", 40);
-
-        ///<summary>D - radius compensation corrector number</summary>
-        public NumericNCWord DRCompens = new NumericNCWord("D{####}", 0);
 
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####!###}", 0);
@@ -77,12 +71,6 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Z coordinate of the movement</summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!###}", 0);
-
-        ///<summary>A axis angle</summary>
-        public NumericNCWord A = new NumericNCWord("A{-#####!###}", 0);
-
-        ///<summary>B axis angle</summary>
-        public NumericNCWord B = new NumericNCWord("B{-#####!###}", 0);
 
         ///<summary>C axis angle</summary>
         public NumericNCWord C = new NumericNCWord("C{-#####!###}", 0);
@@ -98,6 +86,8 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>H - incremental C axis movement</summary>
         public NumericNCWord H = new NumericNCWord("H{-#####!###}", 0);
+
+        public NumericNCWord P = new NumericNCWord("P{-#####!###}", 0);
 
         ///<summary>Circle radius</summary>
         public NumericNCWord R = new NumericNCWord("R{-#####!###}", 0);
@@ -115,10 +105,13 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord K = new NumericNCWord("K{-#####!###}", 0);
 
         ///<summary>Feedrate value of the movement</summary>
-        public NumericNCWord F = new NumericNCWord("F{#####}", 0);
+        public NumericNCWord F = new NumericNCWord("F{#####.##}", 0);
 
-        ///<summary>Tool number</summary>
-        public NumericNCWord T = new NumericNCWord("T{####}", 0);
+        ///<summary>Tool number (first two numbers)</summary>
+        public NumericNCWord T = new NumericNCWord("T{00}", 0);
+
+        ///<summary>Tool number (second two numbers)</summary>
+        public NumericNCWord TCor = new NumericNCWord("{00}", 0);
 
         ///<summary>Pause onhole cycle bottom or top level (G82 and others)</summary>
         public NumericNCWord PDrillPause = new NumericNCWord("P{#####}", 0);
@@ -126,8 +119,11 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>P - subroutine number in call instruction M98 P####</summary>
         public NumericNCWord PSubCall = new NumericNCWord("P{#####}", 0);
 
+        ///<summary>Q - thread start angle for G32/G33</summary>
+        public NumericNCWord QThreadAngle = new NumericNCWord("Q{####!###}", 0);
+
         ///<summary>Q - step for G73, G83 and others drill cycles</summary>
-        public NumericNCWord QStep = new NumericNCWord("P{#####.###}", 0);
+        public NumericNCWord QStep = new NumericNCWord("Q{#####.###}", 0);
 
         ///<summary>M00, M01, M02, M30 - auxiliary M codes</summary>
         public NumericNCWord M = new NumericNCWord("M{00}", 0);
@@ -135,17 +131,8 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>M08, M09 - coolant switch on-off codes</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{00}", 09);
 
-        ///<summary>M593, M592 - A axis brake switch on-off codes</summary>
-        public NumericNCWord MABrake = new NumericNCWord("M{###}", 592);
-
-        ///<summary>M595, M594 - B axis brake switch on-off codes</summary>
-        public NumericNCWord MBBrake = new NumericNCWord("M{###}", 594);
-
         ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
         public NumericNCWord MCBrake = new NumericNCWord("M{###}", 596);
-
-        ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
-        public NumericNCWord Number = new NumericNCWord("{#####.###}", 0);
 
         ///<summary>Text comment at the end of the block</summary>
         public TextNCWord TrailingComment = new TextNCWord("( ", "", " )");
@@ -154,51 +141,47 @@ namespace SprutTechnology.SCPostprocessor
         {
             Block = new NCBlock(this, 
                 BlockN,
+                CycleBlockN,
                 GAbsInc,
                 GMeasure,
                 GWCS,
-                GLCS,
                 GDelay,
                 GPlane,
                 GSMax,
                 GCssRpm,
                 GFeed,
                 GInterp,
+                GPolarOrCyl,
                 GHome,
                 GCycle,
-                GLCompens,
                 GRCompens,
                 X,
                 Y,
                 Z,
-                A,
-                B,
                 C,
                 U,
                 V,
                 W,
                 H,
-                HLCompens,
-                DRCompens,
                 R,
+                P,
                 RSafeLevel,
                 I,
                 J,
                 K,
-                XDelay,
-                F,
+                XDelay,                
                 PDrillPause,
                 QStep,
+                QThreadAngle,
                 S,
                 T,
+                TCor,
+                F,
                 M,
                 MSpindle,
                 MCoolant,
-                MABrake,
-                MBBrake,
                 MCBrake,
                 PSubCall,
-                Number,
                 TrailingComment
             );
             OnInit();

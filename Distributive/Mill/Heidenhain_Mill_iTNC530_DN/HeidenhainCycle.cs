@@ -1,5 +1,3 @@
-using static SprutTechnology.STDefLib.STDef;
-
 namespace SprutTechnology.SCPostprocessor
 {
     ///<summary>One Q parameter of a Heidenhain cycle.</summary> 

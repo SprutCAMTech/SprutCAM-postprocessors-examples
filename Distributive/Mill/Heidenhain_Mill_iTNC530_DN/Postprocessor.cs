@@ -1,10 +1,3 @@
-using System;
-using System.Text;
-using System.Diagnostics;
-using static SprutTechnology.STDefLib.STDef;
-using static SprutTechnology.SCPostprocessor.CommonFuncs;
-using System.Collections.Generic;
-
 namespace SprutTechnology.SCPostprocessor
 {
 
@@ -256,9 +249,7 @@ namespace SprutTechnology.SCPostprocessor
                 // CYCL 19 case
                 if (cmd.IsOn) {
                     nc.OutText($"CYCL DEF 19.0 WORKING PLANE");
-                    nc.OutText($"CYCL DEF 19.1 A{nc.Number.ToString(cmd.Flt["WCS.RotAngles.A"])}");
-                    nc.OutText($"              B{nc.Number.ToString(cmd.Flt["WCS.RotAngles.B"])}");
-                    nc.OutText($"              C{nc.Number.ToString(cmd.Flt["WCS.RotAngles.C"])}");
+                    nc.OutText($"CYCL DEF 19.1 A{nc.Number.ToString(cmd.Flt["WCS.RotAngles.A"])} B{nc.Number.ToString(cmd.Flt["WCS.RotAngles.B"])} C{nc.Number.ToString(cmd.Flt["WCS.RotAngles.C"])}");
                 } else {
                     nc.OutText($"CYCL DEF 19.0 WORKING PLANE");
                     nc.OutText($"CYCL DEF 19.1 A+0 B+0 C+0");
@@ -286,7 +277,7 @@ namespace SprutTechnology.SCPostprocessor
                         else if (cmd.PositioningMode == CLDOriginPositionMode.Move)
                             stayTurnMove = "MOVE FMAX";
                     }
-                    if (true || cmd.IsSpatial) {
+                    if (cmd.IsSpatial) {
                         // PLANE SPATIAL case
                         // 52 PLANE SPATIAL SPA+0 SPB+90 SPC-90 TURN FMAX SEQ-
                         string s = "PLANE SPATIAL";

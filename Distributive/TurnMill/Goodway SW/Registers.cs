@@ -12,6 +12,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Automatic block numbers counter</summary>
         public CountingNCWord BlockN = new CountingNCWord("N{######}", 1, 1, 1);
 
+        ///<summary>Cycle block numbers counter</summary>
+        public NumericNCWord CycleBlockN = new NumericNCWord("N{######}",0);
+
         ///<summary>G90, G91 - absolute or incremental motion mode selection</summary>
         public NumericNCWord GAbsInc = new NumericNCWord("G{##}", 90);
 
@@ -25,7 +28,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord GDelay = new NumericNCWord("G{00}", 04);
 
         ///<summary>Pause duration in seconds</summary>
-        public NumericNCWord XDelay = new NumericNCWord("X{-#####!###}", 0);
+        public NumericNCWord XDelay = new NumericNCWord("U{-#####!###}", 0);
 
         ///<summary>G17, G18, G19 - current plane code</summary>
         public NumericNCWord GPlane = new NumericNCWord("G{##}", 17);
@@ -55,7 +58,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord GHome = new NumericNCWord("G{##}", 28);
 
         ///<summary>G80, G81, G82... - canned cycle code</summary>
-        public NumericNCWord GCycle = new NumericNCWord("G{##}", 80);
+        public NumericNCWord GCycle = new NumericNCWord("G{##.#}", 80);
 
         ///<summary>G40, G41, G42 - radius compensation mode: off, left, right</summary>
         public NumericNCWord GRCompens = new NumericNCWord("G{##}", 40);
@@ -84,6 +87,8 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>H - incremental C axis movement</summary>
         public NumericNCWord H = new NumericNCWord("H{-#####!###}", 0);
 
+        public NumericNCWord P = new NumericNCWord("P{-#####!###}", 0);
+
         ///<summary>Circle radius</summary>
         public NumericNCWord R = new NumericNCWord("R{-#####!###}", 0);
 
@@ -100,13 +105,13 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord K = new NumericNCWord("K{-#####!###}", 0);
 
         ///<summary>Feedrate value of the movement</summary>
-        public NumericNCWord F = new NumericNCWord("F{#####}", 0);
+        public NumericNCWord F = new NumericNCWord("F{#####.##}", 0);
 
         ///<summary>Tool number (first two numbers)</summary>
         public NumericNCWord T = new NumericNCWord("T{00}", 0);
 
         ///<summary>Tool number (second two numbers)</summary>
-        public NumericNCWord TCor = new NumericNCWord("{00}", 0);
+        public NumericNCWord TCor = new NumericNCWord("T{00}", 0);
 
         ///<summary>Pause onhole cycle bottom or top level (G82 and others)</summary>
         public NumericNCWord PDrillPause = new NumericNCWord("P{#####}", 0);
@@ -126,6 +131,12 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>M08, M09 - coolant switch on-off codes</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{00}", 09);
 
+        ///<summary>M82, M83 - sync spindles rotation on-off codes</summary>
+        public NumericNCWord MSyncSp = new NumericNCWord("M{00}", 00);
+
+        ///<summary>M40, M41 - sync Z/ZB on-off codes</summary>
+        public NumericNCWord MSyncZ = new NumericNCWord("M{00}", 00);
+
         ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
         public NumericNCWord MCBrake = new NumericNCWord("M{###}", 596);
 
@@ -136,6 +147,7 @@ namespace SprutTechnology.SCPostprocessor
         {
             Block = new NCBlock(this, 
                 BlockN,
+                CycleBlockN,
                 GAbsInc,
                 GMeasure,
                 GWCS,
@@ -158,22 +170,25 @@ namespace SprutTechnology.SCPostprocessor
                 W,
                 H,
                 R,
+                P,
                 RSafeLevel,
                 I,
                 J,
                 K,
-                XDelay,
-                F,
+                XDelay,                
                 PDrillPause,
                 QStep,
                 QThreadAngle,
                 S,
                 T,
                 TCor,
+                F,
                 M,
                 MSpindle,
                 MCoolant,
                 MCBrake,
+                MSyncSp,
+                MSyncZ,
                 PSubCall,
                 TrailingComment
             );

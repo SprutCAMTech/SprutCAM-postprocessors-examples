@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments>Goodway SW-20</Comments>
+        <CNCSystem>Goodway</CNCSystem>
+        <MachineName>Goodway SW-20</MachineName>
+        <Authors>Alex Groshev</Authors>
+    </Description>
+    <Common>
+        <BreakArcs>No</BreakArcs>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakHelix>false</BreakHelix>
+        <!-- false, true -->
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="NCFilePath" Caption="$(NCFilesDir)" Type="FolderName" />
+            <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
+            <Parameter ID="BarFeedAsSub" Caption="Generate sub for bar feeding" Type="Boolean" Persistent="true" />
+            <Parameter ID="BarFeedSubNumber" Caption="Bar feeding sub number" Type="Integer" Persistent="true" />
+        </Group>
+        <Group ID="Polar" Caption="Polar interpolation">
+            <Parameter ID="RapidFeed" Caption="Rapid feed" Type="Double">1000</Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>

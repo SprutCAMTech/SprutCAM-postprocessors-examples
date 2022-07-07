@@ -7,24 +7,17 @@ public class CoordinateSystem
     /// </summary>
     public T2DPoint Displacement { get; set; }
 
-    public CoordinateSystemSet Set { get; set; }
+    public bool SetDefined { get; set; }
 
-    public CoordinateSystem(T2DPoint displacement, CoordinateSystemSet kind)
+    public CoordinateSystem(T2DPoint displacement, bool setDefined)
     {
         Displacement = displacement;
-        Set = kind;
+        SetDefined = setDefined;
     }
 
     public CoordinateSystem()
     {
         Displacement = T2DPoint.Zero;
-        Set = CoordinateSystemSet.NotDefined;
+        SetDefined = false;
     }
-}
-
-public enum CoordinateSystemSet
-{
-    NotDefined = 0,
-    Cylindrical = 1,
-    Conical = 2
 }

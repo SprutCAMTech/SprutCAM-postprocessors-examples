@@ -85,9 +85,9 @@ public partial class Postprocessor : TPostprocessor
 
     public override void OnEDMMove(ICLDEDMMoveCommand cmd, CLDArray cld)
     {
-        if (localCoordinateSystem.Set != CoordinateSystemSet.Cylindrical)
+        if (!localCoordinateSystem.SetDefined)
         {
-            localCoordinateSystem.Set = CoordinateSystemSet.Cylindrical;
+            localCoordinateSystem.SetDefined = true;
             nc.G_CoordinateSystem.Show(92);
             nc.X_Lower.Show(origin.X);
             nc.Y_Lower.Show(origin.Y);
@@ -299,7 +299,7 @@ public partial class Postprocessor : TPostprocessor
         CLDSub.Translate();
     }
 
-    public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
+    public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
     {
         nc.Block.Out();
         nc.M_Stop.Show(01);
@@ -323,7 +323,7 @@ public partial class Postprocessor : TPostprocessor
         }
         else
         {
-            localCoordinateSystem.Set = CoordinateSystemSet.NotDefined;
+            localCoordinateSystem.SetDefined = false;
             origin = cmd.MCS.P.To2DPoint();
         }
     }
@@ -362,9 +362,18 @@ public partial class Postprocessor : TPostprocessor
                 isMainProgram = true;
                 if (cld[2] == 1)
                 {
-                    wiri = cld[100]; // Passes file
-                    teci = cld[101]; // Workpiece material
-                    wireDiameter = cld[102]; // Wire diameter
+                    if (cld.Count >= 100)
+                    {
+                        wiri = cld[100]; // Passes file
+                    }
+                    if (cld.Count >= 101)
+                    {
+                        teci = cld[101]; // Workpiece material
+                    }
+                    if (cld.Count >= 102)
+                    {
+                        wireDiameter = cld[102]; // Wire diameter
+                    }
                 }
                 break;
 

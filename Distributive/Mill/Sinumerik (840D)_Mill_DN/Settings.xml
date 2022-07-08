@@ -4,10 +4,10 @@
 
 <Settings Version="1.0">
     <Description>
-        <Comments></Comments>
-        <CNCSystem></CNCSystem>
-        <MachineName></MachineName>
-        <Authors></Authors>
+        <Comments />
+        <CNCSystem />
+        <MachineName />
+        <Authors />
     </Description>
     <Common>
         <!-- No, Cuts, Halfs, Quaters -->
@@ -21,6 +21,7 @@
     <UserDefinedParameters>
         <Group ID="OutFiles" Caption="$(OutputFiles)">
             <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+            <Parameter ID="NCProgName" Caption="NC program name" Type="String" />
         </Group>
     </UserDefinedParameters>
 </Settings>

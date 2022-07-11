@@ -10,12 +10,39 @@ namespace SprutTechnology.SCPostprocessor
         public NCBlock Block;
         ///<summary>auto counting</summary>
         public CountingNCWord BlockN = new CountingNCWord("N{######}0", 1, 1, 1);
+
+        ///<summary>G code 0,1,3</summary>
+        public NumericNCWord G = new NumericNCWord("G{######}", 0);
+
         ///<summary>X coordinate of the movement</summary>
-        public NumericNCWord X = new NumericNCWord("X{-#####.####}", 0);
+        public NumericNCWord X = new NumericNCWord("X{-#####.###}", double.NaN);
         ///<summary>Y coordinate of the movement</summary>
-        public NumericNCWord Y = new NumericNCWord("Y{-#####.####}", 0);
-        ///<summary></summary>
-        public NumericNCWord Z = new NumericNCWord("Z{-#####.####}", 0);
+        public NumericNCWord Y = new NumericNCWord("Y{-#####.###}", double.NaN);
+        ///<summary>Z coordinate of the movement</summary>
+        public NumericNCWord Z = new NumericNCWord("Z{-#####.###}", double.NaN);
+
+        ///<summary>A coordinate of the movement</summary>
+        public NumericNCWord A = new NumericNCWord("A{-#####.###}", double.NaN);
+        ///<summary>B coordinate of the movement</summary>
+        public NumericNCWord B = new NumericNCWord("B{-#####.###}", double.NaN);
+
+
+        ///<summary>C coordinate of the movement</summary>
+        public NumericNCWord C = new NumericNCWord("C{-#####.###}", double.NaN);
+
+        ///<summary>Circle I coordinate</summary>
+        public NumericNCWord I = new NumericNCWord("I=AC({-#####.###})", double.NaN);
+        ///<summary>Circle J coordinate</summary>
+        public NumericNCWord J = new NumericNCWord("J=AC({-#####.###})", double.NaN);
+
+        ///<summary>S spindle speed</summary>
+        public NumericNCWord S = new NumericNCWord("S{#####}", 0);
+
+        ///<summary>Number of turns</summary>
+        public NumericNCWord Turn = new NumericNCWord("TURN={#####}", 1);
+
+        ///<summary>Feed value</summary>
+        public TextNCWord Feed = new TextNCWord("F", "10000", "");
         ///<summary>Text field</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
         public NCFile(): base()
@@ -23,9 +50,18 @@ namespace SprutTechnology.SCPostprocessor
             Block = new NCBlock(
                   this, 
                   BlockN, 
+                  G,
                   X, 
                   Y, 
-                  Z, 
+                  Z,
+                  A,
+                  B,
+                  C,
+                  I,
+                  J,
+                  S,
+                  Turn,
+                  Feed, 
                   Text);
             OnInit();
         }

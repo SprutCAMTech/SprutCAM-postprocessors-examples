@@ -36,8 +36,39 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Current nc-file</summary>
         NCFile nc;
+
+        double Plane_;
  
         #endregion
+
+        #region Extentions
+
+        public void ConvertPlaneNumber(int innerN, out double outerN){
+            switch(innerN){
+                case 33: 
+                    outerN = 17;
+                    break;
+                case 41: 
+                    outerN = 18;
+                    break;
+                case 37: 
+                    outerN = 19;
+                    break;
+                case 133: 
+                    outerN = -17;
+                    break;
+                case 141: 
+                    outerN = -18;
+                    break;
+                case 137: 
+                    outerN = -19;
+                    break;  
+                default: 
+                    throw new ArgumentException();
+            }
+        }
+
+        #endregion 
 
         public void PrintAllTools(){
             nc.OutHeaderText(" Tools list");
@@ -163,29 +194,50 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
             nc.WriteLine("; " + op.Comment);
+        }
 
-            // N310 T="T2"; 80мм Цилиндрическая фреза
-            // N320 M6
-            // N330 G17 G54
-            // N340 S159 M3
-            
-            if(op.Tool.Command != null){
-                nc.OutText($"T=\"T{op.Tool.Number}\"; {op.Tool.Caption}");
+        public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
+        {
+            if(cmd.TechOperation.Tool.Command != null){
+                nc.OutText($"T=\"T{cmd.TechOperation.Tool.Number}\"; {cmd.TechOperation.Tool.Caption}");
                 nc.OutText("M6");
-                nc.OutText("G17 G54");
-                double s = 0;
-                if(op.SpindleCommand != null)
-                    s = Abs(op.SpindleCommand.RPMValue);
-                nc.OutText($"{nc.S.ToString(s)} M3");
             }
+        }
 
-            if(op.Tool.PrevTool != null && op.Tool.PrevTool.ID == op.Tool.ID){
-                nc.OutText("G54");
-                double s = 0;
-                if(op.SpindleCommand != null)
-                    s = Abs(op.SpindleCommand.RPMValue);
-                nc.OutText($"{nc.S.ToString(s)} M3");
-            }
+        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
+        {
+            ConvertPlaneNumber(cld[1], out Plane_);
+            nc.GPlane.v = Plane_;
+        }
+
+        public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
+        {
+            if (cld[1] == 71) { // Spindle On
+                nc.GPlane.v = Plane_;
+                if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0)) {
+                    nc.GPlane.v0 = nc.GPlane.v;
+                }
+                nc.G54.Show();
+                nc.Block.Out();
+                switch (cld[4]){
+                    case 0: //RPM
+                        nc.S.v = cld[2]; nc.S.v0 = double.MaxValue;
+                        if (cld[2] > 0)  
+                            nc.Msp.v = 3;
+                        else 
+                            nc.Msp.v = 4;
+                        nc.Msp.v0 = double.MaxValue;
+                        nc.Block.Out();
+                        break;
+                    case 2: // css
+                        throw new Exception("CSS mode not realized");
+                }
+            } 
+            else if (cld[1] == 72){ // Spindle Off
+                nc.Msp.v = 5; //Msp3@ = MaxReal
+                nc.Block.Out();
+            } 
+            else if (cld[1] == 246) { /* Spindle Orient*/ }
         }
 
         public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
@@ -307,3 +359,4 @@ namespace SprutTechnology.SCPostprocessor
 
     }
 }
+

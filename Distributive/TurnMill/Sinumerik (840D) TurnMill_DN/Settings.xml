@@ -6,8 +6,8 @@
     <Description>
         <Comments></Comments>
         <CNCSystem></CNCSystem>
-        <MachineName></MachineName>
-        <Authors></Authors>
+        <MachineName>Sinumerik (840D) TurnMill</MachineName>
+        <Authors>razrez</Authors>
     </Description>
     <Common>
         <!-- No, Cuts, Halfs, Quaters -->

@@ -14,6 +14,12 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>G code 0,1,3</summary>
         public NumericNCWord G = new NumericNCWord("G{######}", 0);
 
+        ///<summary>G code for plane</summary>
+        public NumericNCWord GPlane = new NumericNCWord("G{######}", 54);
+
+        ///<summary>G54</summary>
+        public TextNCWord G54 = new TextNCWord("G", "54", "");
+
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####.###}", double.NaN);
         ///<summary>Y coordinate of the movement</summary>
@@ -41,6 +47,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Number of turns</summary>
         public NumericNCWord Turn = new NumericNCWord("TURN={#####}", 1);
 
+        ///<summary>M3, M4, M5</summary>
+        public NumericNCWord Msp = new NumericNCWord("M{#####}", 0);
+
         ///<summary>Feed value</summary>
         public TextNCWord Feed = new TextNCWord("F", "10000", "");
         ///<summary>Text field</summary>
@@ -51,6 +60,8 @@ namespace SprutTechnology.SCPostprocessor
                   this, 
                   BlockN, 
                   G,
+                  GPlane,
+                  G54,
                   X, 
                   Y, 
                   Z,
@@ -61,6 +72,7 @@ namespace SprutTechnology.SCPostprocessor
                   J,
                   S,
                   Turn,
+                  Msp,
                   Feed, 
                   Text);
             OnInit();

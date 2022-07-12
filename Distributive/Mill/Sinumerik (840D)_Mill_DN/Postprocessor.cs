@@ -15,17 +15,21 @@ namespace SprutTechnology.SCPostprocessor
             Block.Out();
         }
 
+        public void OutText(){
+            if(X.Changed || Y.Changed || Z.Changed || I.Changed || J.Changed){
+                if(!SameText(Feed.v, "10000"))
+                    Feed.UpdateState();
+                Block.Out();
+            }  
+        }
+
         public void OutHeaderText(string text){
             WriteLine(";" + text);
         }
 
-        public void ClearAxis(){
-            X.v0 = double.NaN;
-            Y.v0 = double.NaN;
-            Z.v0 = double.NaN;
-            A.v0 = double.NaN;
-            B.v0 = double.NaN;
-            C.v0 = double.NaN;
+        public void SetDefaultSpiralTurn(){
+            Turn.v = 0;
+            Turn.v0 = double.MaxValue;
         }
     }
 
@@ -38,34 +42,23 @@ namespace SprutTechnology.SCPostprocessor
         NCFile nc;
 
         double Plane_;
+
+        int WasCycle800 = 0;
  
         #endregion
 
         #region Extentions
 
-        public void ConvertPlaneNumber(int innerN, out double outerN){
-            switch(innerN){
-                case 33: 
-                    outerN = 17;
-                    break;
-                case 41: 
-                    outerN = 18;
-                    break;
-                case 37: 
-                    outerN = 19;
-                    break;
-                case 133: 
-                    outerN = -17;
-                    break;
-                case 141: 
-                    outerN = -18;
-                    break;
-                case 137: 
-                    outerN = -19;
-                    break;  
-                default: 
-                    throw new ArgumentException();
+        public void Cycle800SwitchOff(){
+            double tInterp;
+            tInterp = nc.G.v0; nc.G.v0 = nc.G.v;
+            nc.Block.Out();
+            if (WasCycle800 != 0) {
+                nc.Block.Form();
+                nc.WriteLine("CYCLE800()");
+                WasCycle800 = 0;
             }
+            nc.G.v0 = tInterp;
         }
 
         #endregion 
@@ -186,76 +179,51 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine();
         }
 
-        public override void OnFinishProject(ICLDProject prj)
-        {
-            nc.WriteLine("End of file: " + Path.GetFileName(nc.OutputFileName));
-        }
-
-        public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
-        {
-            nc.WriteLine("; " + op.Comment);
-        }
-
+        public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine("; " + op.Comment);
+        
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
             if(cmd.TechOperation.Tool.Command != null){
                 nc.OutText($"T=\"T{cmd.TechOperation.Tool.Number}\"; {cmd.TechOperation.Tool.Caption}");
                 nc.OutText("M6");
             }
+            Plane_ = ((double)cmd.Plane);
         }
 
-        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
-        {
-            ConvertPlaneNumber(cld[1], out Plane_);
-            nc.GPlane.v = Plane_;
-        }
+        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld) => nc.GPlane.v = ((double)cmd.Plane);
 
         public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
         {
-            if (cld[1] == 71) { // Spindle On
+            if (cmd.IsOn) { // Spindle On
                 nc.GPlane.v = Plane_;
-                if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0)) {
+                if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0))
                     nc.GPlane.v0 = nc.GPlane.v;
-                }
                 nc.G54.Show();
                 nc.Block.Out();
                 switch (cld[4]){
                     case 0: //RPM
                         nc.S.v = cld[2]; nc.S.v0 = double.MaxValue;
-                        if (cld[2] > 0)  
-                            nc.Msp.v = 3;
-                        else 
-                            nc.Msp.v = 4;
-                        nc.Msp.v0 = double.MaxValue;
+                        nc.Msp.v = cmd.IsClockwiseDir ? 3 : 4; nc.Msp.v0 = double.MaxValue;
                         nc.Block.Out();
                         break;
                     case 2: // css
                         throw new Exception("CSS mode not realized");
                 }
-            } 
-            else if (cld[1] == 72){ // Spindle Off
-                nc.Msp.v = 5; //Msp3@ = MaxReal
+            } else if (cmd.IsOff){ // Spindle Off
+                nc.Msp.v = 5; //Msp3@ = double.MaxValue;
+                nc.MCoolant.v = 9;
                 nc.Block.Out();
-            } 
-            else if (cld[1] == 246) { /* Spindle Orient*/ }
+            } else if (cmd.IsOrient) { /* Spindle Orient*/ }
         }
 
-        public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
-        {
-            nc.WriteLine();
-        }
+        public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine();
+
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
             if ((nc.G.v > 1) && (nc.G.v < 4))  nc.G.v = 1;
-            nc.X.v = cmd.EP.X;
-            nc.Y.v = cmd.EP.Y;
-            nc.Z.v = cmd.EP.Z;
-            if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed){
-                if(!SameText(nc.Feed.v, "10000"))
-                    nc.Feed.UpdateState();
-                nc.Block.Out();
-            }
+            nc.X.v = cmd.EP.X; nc.Y.v = cmd.EP.Y; nc.Z.v = cmd.EP.Z;
+            nc.OutText();
         }
 
         public override void OnMoveVelocity(ICLDMoveVelocityCommand cmd, CLDArray cld)
@@ -312,51 +280,116 @@ namespace SprutTechnology.SCPostprocessor
         {
             //N230 G3 X-810.31 Y-8.355 I=AC(-771.052) J=AC(-0.977)
 
-            nc.X.v = cmd.EP.X;
-            nc.Y.v = cmd.EP.Y;
-            nc.Z.v = cmd.EP.Z;
-            nc.I.v = cmd.Center.X;
-            nc.J.v = cmd.Center.Y;
-            if (cld[4] * Sgn(cld[17]) > 0){
-                nc.G.v = 3;
-            }
-            else{
-                nc.G.v = 2;
-            } //G3/G2
+            nc.X.v = cmd.EP.X; nc.Y.v = cmd.EP.Y; nc.Z.v = cmd.EP.Z;
+            nc.I.v = cmd.Center.X; nc.J.v = cmd.Center.Y;
+            nc.G.v = cld[4] * Sgn(cld[17]) > 0 ? 3 : 2; //G3/G2
+
             // Если спираль, то выводим Turn (количество оборотов) явно
-            if ((Abs(cld[17]) == 17) && (cmd.SP.Z != nc.Z.v)){
-                nc.Turn.v = 0;
-                nc.Turn.v0 = double.MaxValue;
+            if ((Abs(cmd.Plane) == 17) && (cmd.SP.Z != nc.Z.v)){
+                nc.SetDefaultSpiralTurn();
                 if ((cmd.SP.X == nc.X.v) && (cmd.SP.Y == nc.Y.v))
                     nc.Turn.v = 1;  // полный оборот
             } 
-            else if ((Abs(cld[17]) == 18) && (cmd.SP.Y  != nc.Y.v)) {
-                nc.Turn.v = 0;
-                nc.Turn.v0 = double.MaxValue;
+            else if ((Abs(cmd.Plane) == 18) && (cmd.SP.Y  != nc.Y.v)) {
+                nc.SetDefaultSpiralTurn();
                 if ((cmd.SP.X == nc.X.v) && (cmd.SP.Z == nc.Z.v))
                     nc.Turn.v = 1;  // полный оборот
             } 
-            else if ((Abs(cld[17]) == 19) && (cmd.SP.X != nc.X.v)){
-                nc.Turn.v = 0;
-                nc.Turn.v0 = double.MaxValue;
+            else if ((Abs(cmd.Plane) == 19) && (cmd.SP.X != nc.X.v)){
+                nc.SetDefaultSpiralTurn();
                 if ((cmd.SP.Y  == nc.Y.v) && (cmd.SP.Z == nc.Z.v)) 
                     nc.Turn.v = 1;  // полный оборот
             };
-            if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed || nc.I.Changed || nc.J.Changed){
-                if(!SameText(nc.Feed.v, "10000"))
-                    nc.Feed.UpdateState();
+            nc.OutText(); 
+        }
+
+        public override void OnPhysicGoto(ICLDPhysicGotoCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            Cycle800SwitchOff();
+            if (cmd.Ptr["Axes(AxisXPos)"] != null) {
+                nc.X.v = cmd.Flt["Axes(AxisXPos).Value"]; nc.X.v0 = double.MaxValue;
+            }
+            if (cmd.Ptr["Axes(AxisYPos)"] != null) {
+                nc.Y.v = cmd.Flt["Axes(AxisYPos).Value"]; nc.Y.v0 = double.MaxValue;
+            }
+            if (cmd.Ptr["Axes(AxisZPos)"] != null) {
+                nc.Z.v = cmd.Flt["Axes(AxisZPos).Value"]; nc.Z.v0 = double.MaxValue;
+            }
+            if (cmd.Ptr["Axes(AxisAPos)"] != null) {
+                nc.A.v = cmd.Flt["Axes(AxisAPos).Value"]; nc.A.v0 = double.MaxValue;
+            }
+            if (cmd.Ptr["Axes(AxisBPos)"] != null) {
+                nc.B.v = cmd.Flt["Axes(AxisBPos).Value"]; nc.B.v0 = double.MaxValue;
+            }
+            if (cmd.Ptr["Axes(AxisCPos)"] != null) {
+                nc.C.v = cmd.Flt["Axes(AxisCPos).Value"]; nc.C.v0 = double.MaxValue;
+            }
+            if ((nc.X.v != nc.X.v0) || (nc.Y.v != nc.Y.v) || (nc.Z.v != nc.Z.v0) || (nc.A.v != nc.A.v0) || (nc.B.v != nc.B.v0) || (nc.C.v != nc.C.v0))
+            {
+                // nc.G.v = 53; nc.G.v0 = double.MaxValue;
+                nc.SUPA.v = 1; nc.SUPA.v0 = 0;
+                nc.DTool.v = 0; // Корректор на длину
                 nc.Block.Out();
             }
         }
 
-        public override void StopOnCLData() 
+        public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
         {
-            // Do nothing, just to be possible to use CLData breakpoints
+            switch (cld[1]) {
+                // case 50:  // StartSub
+                //     nc.Block.Out();
+                //     CurNCFile = MainNCPath + NCSub.Name(cld[2]) + ".spf" !NCFileExt;
+                //     ChangeNCFile CurNCFile;
+                //     Output "%_N_" + NCSub.Name(cld[2]) + "_SPF";
+                //     call OutHeader;
+                //     nc.WriteLine();
+                //     nc.BlockN.v = 0; nc.BlockN.v0 = nc.BlockN.v;
+                //     nc.G.v = 0; nc.G.v0 = double.MaxValue;
+                //     nc.Feed.v = "0"; nc.Feed.v0 = nc.Feed.v;
+                //     break;
+                // case 51: // EndSub
+                //     nc.Block.Out();
+                //     nc.M.v = 17; nc.M.v0 = double.MaxValue;
+                //     nc.Block.Out();
+                //     CurNCFile = MainNCFile
+                //     break;
+                // case 52: // CallSub
+                //     CheckAxesBrake(2, 2, 2);
+                //     nc.Block.Out();
+                //     nc.WriteLine("CALL " + Chr(34) + "_N_" + NCSub.Name(cld[2]) + "_SPF" + Chr(34));
+                //     break;
+                // case 58: // TechInfo
+                //     IsFirstCycle = 1;
+                //     CSOnCount = 0;
+                //     type_op = cmd.Ptr["PPFun(TechInfo).Operation(1)"].Name;
+                //         // if type_op != "TST2DContouringOp" and type_op != "HoleMachiningOp" and type_op != "TSTFBMMillOp" then begin
+                //         //     G641_on_off = 1
+                //         // end else G641_on_off = 0
+                //     break;
+                case 59: // EndTechInfo
+                    // if (G641_on_off == 10) {
+                    //     BlockN = BlockN + BlockStep;
+                    //     output "N"+str(blockN)+" G60";
+                    //     G641_on_off = 0;
+                    // }
+                    Cycle800SwitchOff();
+                    if (cmd.Int["PPFun(EndTechInfo).Enabled"] != 0) {
+
+                            nc.M.v = 1;
+                            nc.M.v0 = 0;
+                            nc.Block.Out();
+
+                        nc.WriteLine();
+                    }
+                    break;
+            }
         }
 
-        // Uncomment line below (Ctrl + "/"), go to the end of "On" word and press Ctrl+Space to add a new CLData command handler
-        // override On
-
+        public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
+        {
+            if(nc.G.v > 0) nc.G.v = 0; 
+        }
     }
 }
 

@@ -9,16 +9,19 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>The block of the nc-file is an ordered list of nc-words</summary>
         public NCBlock Block;
         ///<summary>auto counting</summary>
-        public CountingNCWord BlockN = new CountingNCWord("N{######}0", 1, 1, 1);
+        public CountingNCWord BlockN = new CountingNCWord("N{####}0", 1, 1, 1);
 
         ///<summary>G code 0,1,3</summary>
-        public NumericNCWord G = new NumericNCWord("G{######}", 0);
+        public NumericNCWord G = new NumericNCWord("G{######}", double.MaxValue);
 
         ///<summary>G code for plane</summary>
         public NumericNCWord GPlane = new NumericNCWord("G{######}", 54);
 
         ///<summary>G54</summary>
         public TextNCWord G54 = new TextNCWord("G", "54", "");
+
+        ///<summary>SUPA</summary>
+        public NumericNCWord SUPA = new NumericNCWord("SUPA", 0);
 
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####.###}", double.NaN);
@@ -44,14 +47,24 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>S spindle speed</summary>
         public NumericNCWord S = new NumericNCWord("S{#####}", 0);
 
+        ///<summary>Length correction for tool</summary>
+        public NumericNCWord DTool = new NumericNCWord("D{######}", double.MaxValue);
+
         ///<summary>Number of turns</summary>
         public NumericNCWord Turn = new NumericNCWord("TURN={#####}", 1);
 
-        ///<summary>M3, M4, M5</summary>
-        public NumericNCWord Msp = new NumericNCWord("M{#####}", 0);
+        ///<summary>M</summary>
+        public NumericNCWord M = new NumericNCWord("M{####}", 0);
+
+        ///<summary>Spindle on-off: M3, M4, M5</summary>
+        public NumericNCWord Msp = new NumericNCWord("M{#}", 0);
+
+        ///<summary>Coolant for M8, M9</summary>
+        public NumericNCWord MCoolant = new NumericNCWord("M{#}", double.MaxValue);
 
         ///<summary>Feed value</summary>
         public TextNCWord Feed = new TextNCWord("F", "10000", "");
+
         ///<summary>Text field</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
         public NCFile(): base()
@@ -62,6 +75,7 @@ namespace SprutTechnology.SCPostprocessor
                   G,
                   GPlane,
                   G54,
+                  SUPA,
                   X, 
                   Y, 
                   Z,
@@ -71,8 +85,11 @@ namespace SprutTechnology.SCPostprocessor
                   I,
                   J,
                   S,
+                  DTool,
                   Turn,
+                  M,
                   Msp,
+                  MCoolant,
                   Feed, 
                   Text);
             OnInit();

@@ -4,7 +4,6 @@ namespace SprutTechnology.SCPostprocessor
     enum OpType {
         Unknown,
         Mill,
-        Turning, //токарная обработка
         Lathe,
         Auxiliary,
         WireEDM
@@ -83,8 +82,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine("O" + Str(nc.ProgNumber));
 
             PrintAllTools();
-            //nc.Block.Show(nc.BlockN, nc.GWCS, nc.GInterp);
-            // nc.Block.Out();
         }
 
         public override void OnFinishProject(ICLDProject prj)
@@ -97,6 +94,8 @@ namespace SprutTechnology.SCPostprocessor
         {
             // One empty line between operations 
             nc.WriteLine();
+
+            //currentOperationType = (OpType)(int)cld[60];
         }  
 
         public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
@@ -106,13 +105,38 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
         {
-            base.OnOrigin(cmd, cld);
+            if (cld[4] == 0) nc.GWCS.v = cmd.CSNumber;
+            else if(cld[4] == 1079)
+            {
+                nc.Block.Show(nc.BlockN, nc.GWCS);
+                nc.Block.Out();
+
+                if(Abs(cmd.EN.A) > 0.0001 | Abs(cmd.EN.B) > 0.0001 | Abs(cmd.EN.C) > 0.0001)
+                {
+                    nc.A.v = cmd.EN.A;
+                    nc.B.v = cmd.EN.B;
+                    nc.C.v = cmd.EN.C;
+                }
+                nc.X.v = cmd.EP.X;
+                nc.Y.v = cmd.EP.Y;
+                nc.Z.v = cmd.EP.Z;
+            }
+            else Debug.Write("Unknown coordinate system");
         }
 
         //(ORIGIN)
         public override void OnWorkpieceCS(ICLDOriginCommand cmd, CLDArray cld)
         {
-            nc.GWCS.v = cmd.CSNumber;
+            //nc.GWCS.v = cmd.CSNumber;
+            // nc.Block.Show(nc.BlockN, nc.GWCS);
+            // nc.Block.Out();
+            base.OnWorkpieceCS(cmd, cld);
+
+            
+        }
+
+        public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
+        {
             nc.Block.Show(nc.BlockN, nc.GWCS);
             nc.Block.Out();
 
@@ -148,7 +172,7 @@ namespace SprutTechnology.SCPostprocessor
             }
 
             nc.Z.v = cmd.EP.Z;
-            if(currentOperationType == OpType.Turning )
+            if(currentOperationType == OpType.Lathe )
             {
                 nc.X.v = cmd.EP.Y;
             }

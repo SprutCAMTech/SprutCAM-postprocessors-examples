@@ -69,6 +69,12 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Z coordinate of the movement</summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!###}", 0);
 
+        ///<summary>A axis angle</summary>
+        public NumericNCWord A = new NumericNCWord("A{-#####!###}", 0);
+
+        ///<summary>B axis angle</summary>
+        public NumericNCWord B = new NumericNCWord("B{-#####!###}", 0);
+        
         ///<summary>C axis angle</summary>
         public NumericNCWord C = new NumericNCWord("C{-#####!###}", 0);
 

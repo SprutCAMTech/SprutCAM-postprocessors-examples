@@ -131,8 +131,6 @@ namespace SprutTechnology.SCPostprocessor
             // nc.Block.Show(nc.BlockN, nc.GWCS);
             // nc.Block.Out();
             base.OnWorkpieceCS(cmd, cld);
-
-            
         }
 
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
@@ -143,6 +141,33 @@ namespace SprutTechnology.SCPostprocessor
             nc.T.v = cmd.TechOperation.Tool.Number;
             nc.Block.Show(nc.BlockN, nc.T);
             nc.Block.Out();
+
+            // GPlane - Переключение рабочих плоскостей (XY, XZ, YZ)
+            switch (cld[14])
+            {
+                case 33:
+                    nc.GPlane.v = 17;
+                    break;
+                case 41:
+                    nc.GPlane.v = 18;
+                    break;
+                case 37:
+                    nc.GPlane.v = 19;
+                    break;
+                case 133:
+                    nc.GPlane.v = -17;
+                    break;
+                case 141:
+                    nc.GPlane.v = -18;
+                    break;
+                case 137:
+                    nc.GPlane.v = -19;
+                    break;
+                default:
+                    Debug.WriteLine("");
+                    break;
+            }
+            
         }
         
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)

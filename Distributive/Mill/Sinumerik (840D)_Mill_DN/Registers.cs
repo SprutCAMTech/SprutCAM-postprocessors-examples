@@ -15,13 +15,25 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord G = new NumericNCWord("G{######}", double.MaxValue);
 
         ///<summary>G code for plane</summary>
-        public NumericNCWord GPlane = new NumericNCWord("G{######}", 54);
+        public NumericNCWord GPlane = new NumericNCWord("G{######}", double.MaxValue);
+
+        ///<summary></summary>
+        public NumericNCWord KorEcv = new NumericNCWord("G{######}", double.MaxValue);
+
+        ///<summary>G code for coordinate system</summary>
+        public NumericNCWord CoordSys = new NumericNCWord("G{######}", double.MaxValue);
 
         ///<summary>G54</summary>
         public TextNCWord G54 = new TextNCWord("G", "54", "");
 
+        ///<summary>G94, G95</summary>
+        public NumericNCWord GFeed = new NumericNCWord("G{######}", double.MaxValue);
+
         ///<summary>SUPA</summary>
         public NumericNCWord SUPA = new NumericNCWord("SUPA", 0);
+
+        ///<summary>Tool number</summary>
+        public NumericNCWord Tool = new NumericNCWord("T=\"{#}\"", double.MaxValue);
 
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####.###}", double.NaN);
@@ -62,8 +74,17 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Coolant for M8, M9</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{#}", double.MaxValue);
 
+        ///<summary>Axes A break</summary>
+        public NumericNCWord MABreak = new NumericNCWord("M{####}", double.MaxValue);
+
+        ///<summary>Axes B break</summary>
+        public NumericNCWord MBBreak = new NumericNCWord("M{####}", double.MaxValue);
+
+        ///<summary>Axes C break</summary>
+        public NumericNCWord MCBreak = new NumericNCWord("M{####}", double.MaxValue);
+
         ///<summary>Feed value</summary>
-        public TextNCWord Feed = new TextNCWord("F", "10000", "");
+        public NumericNCWord Feed = new NumericNCWord("F{######}", 10000);
 
         ///<summary>Text field</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
@@ -74,7 +95,9 @@ namespace SprutTechnology.SCPostprocessor
                   BlockN, 
                   G,
                   GPlane,
+                  CoordSys,
                   G54,
+                  GFeed,
                   SUPA,
                   X, 
                   Y, 
@@ -90,6 +113,9 @@ namespace SprutTechnology.SCPostprocessor
                   M,
                   Msp,
                   MCoolant,
+                  MABreak,
+                  MBBreak,
+                  MCBreak,
                   Feed, 
                   Text);
             OnInit();

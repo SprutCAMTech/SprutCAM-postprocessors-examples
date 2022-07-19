@@ -124,7 +124,7 @@ namespace SprutTechnology.SCPostprocessor
             else Debug.Write("Unknown coordinate system");
         }
 
-        //(ORIGIN)
+        //(ORIGIN part)
         public override void OnWorkpieceCS(ICLDOriginCommand cmd, CLDArray cld)
         {
             //nc.GWCS.v = cmd.CSNumber;
@@ -132,6 +132,18 @@ namespace SprutTechnology.SCPostprocessor
             // nc.Block.Out();
             base.OnWorkpieceCS(cmd, cld);
         }
+        
+        // GPlane, Переключение рабочих плоскостей (XY, XZ, YZ)
+        private int ChangeGPlane(double cld14) => cld14 switch
+        {
+            33 => 17,
+            41 => 18,
+            37 => 19,
+            133 => -17,
+            141 => -18,
+            137 => -19,
+            _ => 0
+        };
 
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
@@ -142,32 +154,24 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Show(nc.BlockN, nc.T);
             nc.Block.Out();
 
-            // GPlane - Переключение рабочих плоскостей (XY, XZ, YZ)
-            switch (cld[14])
-            {
-                case 33:
-                    nc.GPlane.v = 17;
-                    break;
-                case 41:
-                    nc.GPlane.v = 18;
-                    break;
-                case 37:
-                    nc.GPlane.v = 19;
-                    break;
-                case 133:
-                    nc.GPlane.v = -17;
-                    break;
-                case 141:
-                    nc.GPlane.v = -18;
-                    break;
-                case 137:
-                    nc.GPlane.v = -19;
-                    break;
-                default:
-                    Debug.WriteLine("");
-                    break;
+            //Переключение рабочих плоскостей (XY, XZ, YZ)
+            var newGplane = ChangeGPlane(cld[14]);
+
+            if (newGplane != 0) nc.GPlane.v = newGplane;
+            else Debug.WriteLine("Wrong given a plane of processing");
+        }
+
+        //or (CUTCOM)
+        public override void OnRadiusCompensation(ICLDCutComCommand cmd, CLDArray cld)
+        {
+            if (cmd.IsOn) {
+                if (cmd.IsLeftDirection)
+                    nc.GRCompens.Show(41);
+                else
+                    nc.GRCompens.Show(42);
+            } else {
+                nc.GRCompens.v = 40;
             }
-            
         }
         
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
@@ -175,7 +179,7 @@ namespace SprutTechnology.SCPostprocessor
             base.OnRapid(cmd, cld);
         }
 
-        //(AbsMov)
+        //(AbsMov in postprocessor generator)
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
             //я не шарю, углы в радианах или в градусах в cld
@@ -192,7 +196,7 @@ namespace SprutTechnology.SCPostprocessor
 
             else
             {
-                nc.X.v = cmd.EP.X * xScale; //xScale в этом случае должно быть установлено = 2
+                nc.X.v = cmd.EP.X * xScale; //xScale = 2
                 nc.Y.v = cmd.EP.Y;
             }
 
@@ -253,7 +257,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.R.Show(cmd.RIso);
             nc.Block.Out();
         }
-
 
         public override void OnFilterString(ref string s, TNCFile ncFile, INCLabel label)
         {

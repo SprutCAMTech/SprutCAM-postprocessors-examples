@@ -9,98 +9,76 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>The block of the nc-file is an ordered list of nc-words</summary>
         public NCBlock Block;
         ///<summary>auto counting</summary>
-        public CountingNCWord BlockN = new CountingNCWord("N{####}0", 1, 1, 1);
-
+        public CountingNCWord BlockN = new CountingNCWord("N{###}0", 1, 1, 1);
         ///<summary>G code 0,1,3</summary>
-        public NumericNCWord G = new NumericNCWord("G{######}", double.MaxValue);
-
+        public NumericNCWord GInterp = new NumericNCWord("G{######}", double.MaxValue);
         ///<summary>G code for plane</summary>
         public NumericNCWord GPlane = new NumericNCWord("G{######}", double.MaxValue);
-
         ///<summary></summary>
         public NumericNCWord KorEcv = new NumericNCWord("G{######}", double.MaxValue);
-
         ///<summary>G code for coordinate system</summary>
         public NumericNCWord CoordSys = new NumericNCWord("G{######}", double.MaxValue);
-
         ///<summary>G54</summary>
         public TextNCWord G54 = new TextNCWord("G", "54", "");
-
         ///<summary>G94, G95</summary>
         public NumericNCWord GFeed = new NumericNCWord("G{######}", double.MaxValue);
-
         ///<summary>SUPA</summary>
         public NumericNCWord SUPA = new NumericNCWord("SUPA", 0);
-
         ///<summary>Tool number</summary>
-        public NumericNCWord Tool = new NumericNCWord("T=\"{#}\"", double.MaxValue);
-
+        public NumericNCWord Tool = new NumericNCWord("T=\"T{#}\";", double.MaxValue);
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####.###}", double.NaN);
         ///<summary>Y coordinate of the movement</summary>
         public NumericNCWord Y = new NumericNCWord("Y{-#####.###}", double.NaN);
         ///<summary>Z coordinate of the movement</summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####.###}", double.NaN);
-
         ///<summary>A coordinate of the movement</summary>
         public NumericNCWord A = new NumericNCWord("A{-#####.###}", double.NaN);
         ///<summary>B coordinate of the movement</summary>
         public NumericNCWord B = new NumericNCWord("B{-#####.###}", double.NaN);
-
-
         ///<summary>C coordinate of the movement</summary>
         public NumericNCWord C = new NumericNCWord("C{-#####.###}", double.NaN);
-
         ///<summary>Circle I coordinate</summary>
         public NumericNCWord I = new NumericNCWord("I=AC({-#####.###})", double.NaN);
         ///<summary>Circle J coordinate</summary>
         public NumericNCWord J = new NumericNCWord("J=AC({-#####.###})", double.NaN);
-
         ///<summary>S spindle speed</summary>
         public NumericNCWord S = new NumericNCWord("S{#####}", 0);
-
         ///<summary>Length correction for tool</summary>
         public NumericNCWord DTool = new NumericNCWord("D{######}", double.MaxValue);
-
         ///<summary>Number of turns</summary>
         public NumericNCWord Turn = new NumericNCWord("TURN={#####}", 1);
-
         ///<summary>M</summary>
         public NumericNCWord M = new NumericNCWord("M{####}", 0);
-
         ///<summary>Spindle on-off: M3, M4, M5</summary>
         public NumericNCWord Msp = new NumericNCWord("M{#}", 0);
-
         ///<summary>Coolant for M8, M9</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{#}", double.MaxValue);
-
         ///<summary>Axes A break</summary>
         public NumericNCWord MABreak = new NumericNCWord("M{####}", double.MaxValue);
-
         ///<summary>Axes B break</summary>
         public NumericNCWord MBBreak = new NumericNCWord("M{####}", double.MaxValue);
-
         ///<summary>Axes C break</summary>
         public NumericNCWord MCBreak = new NumericNCWord("M{####}", double.MaxValue);
-
         ///<summary>Feed value</summary>
         public NumericNCWord Feed = new NumericNCWord("F{######}", 10000);
-
         ///<summary>Text field</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
-        public NCFile(): base()
+        public NCFile() : base()
         {
             Block = new NCBlock(
-                  this, 
-                  BlockN, 
-                  G,
+                  this,
+                  BlockN,
+                  GInterp,
                   GPlane,
+                  KorEcv,
                   CoordSys,
                   G54,
                   GFeed,
                   SUPA,
-                  X, 
-                  Y, 
+                  Tool,
+                  X,
+                  Y,
                   Z,
                   A,
                   B,
@@ -116,7 +94,7 @@ namespace SprutTechnology.SCPostprocessor
                   MABreak,
                   MBBreak,
                   MCBreak,
-                  Feed, 
+                  Feed,
                   Text);
             OnInit();
         }

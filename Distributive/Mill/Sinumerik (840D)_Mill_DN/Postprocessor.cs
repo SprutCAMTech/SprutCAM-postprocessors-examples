@@ -10,15 +10,15 @@ namespace SprutTechnology.SCPostprocessor
         // Declare variables specific to a particular file here, as shown below
         // int FileNumber;
 
-        public void OutText(string text){
-            Text.Show(text);
-            Block.Out();
-        }
-
         public void OutText(){
             if(X.Changed || Y.Changed || Z.Changed || I.Changed || J.Changed){
                 Block.Out();
             }  
+        }
+
+        public void OutText(string text){
+            Text.Show(text);
+            Block.Out();
         }
 
         public void OutHeaderText(string text){
@@ -28,6 +28,92 @@ namespace SprutTechnology.SCPostprocessor
         public void SetDefaultSpiralTurn(){
             Turn.v = 0;
             Turn.v0 = double.MaxValue;
+        }
+
+        public void ResetCounting(){
+            if(BlockN.v == 1000)
+                BlockN.v = 0;
+        }
+
+        public void SetAxisValues(ICLDMultiGotoCommand cmd, SinumerikCycle cycle){
+            foreach(CLDMultiMotionAxis axis in cmd.Axes){
+                if(axis.IsX){
+                    X.v = axis.Value;
+                    cycle.State.XT_ = X.v;
+                }
+                else if(axis.IsY){
+                    Y.v = axis.Value;
+                    cycle.State.YT_ = Y.v;
+                }
+                else if(axis.IsZ){
+                    Z.v = axis.Value;
+                    cycle.State.ZT_ = Z.v;
+                }
+                else if(axis.IsA)
+                    A.v = axis.Value;
+                else if(axis.IsB)
+                    B.v = axis.Value;
+                else if(axis.IsC)
+                    C.v = axis.Value;
+            }
+        }
+
+        public void SetAxisValues(ICLDPhysicGotoCommand cmd){
+            foreach(CLDMultiMotionAxis axis in cmd.Axes){
+                if(axis.IsX){
+                    X.v = axis.Value;
+                    X.v0 = double.MaxValue;
+                }
+                else if(axis.IsY){
+                    Y.v = axis.Value;
+                    Y.v0 = double.MaxValue;
+                }
+                else if(axis.IsZ){
+                    Z.v = axis.Value;
+                    Z.v0 = double.MaxValue;
+                }
+                else if(axis.IsA){
+                    A.v = axis.Value;
+                    A.v0 = double.MaxValue;
+                }
+                else if(axis.IsB){
+                    B.v = axis.Value;
+                    B.v0 = double.MaxValue;
+                }
+                else if(axis.IsC){
+                    C.v = axis.Value;
+                    C.v0 = double.MaxValue;
+                }
+            }
+        }
+
+        public void SetAxisValues(ICLDGoHomeCommand cmd){
+            foreach(CLDMultiMotionAxis axis in cmd.Axes){
+                if(axis.IsX){
+                    X.v = axis.Value;
+                    X.v0 = double.MaxValue;
+                }
+                else if(axis.IsY){
+                    Y.v = axis.Value;
+                    Y.v0 = double.MaxValue;
+                }
+                else if(axis.IsZ){
+                    Z.v = axis.Value;
+                    Z.v0 = double.MaxValue;
+                }
+                else if(axis.IsA){
+                    A.v = axis.Value;
+                    A.v0 = double.MaxValue;
+                }
+                else if(axis.IsB){
+                    B.v = axis.Value;
+                    B.v0 = double.MaxValue;
+                }
+                else if(axis.IsC){
+                    C.v = axis.Value;
+                    C.v0 = double.MaxValue;
+                }
+            }
         }
     }
 
@@ -39,9 +125,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Current nc-file</summary>
         NCFile nc;
 
-        double Plane_;
+        SinumerikCycle Cycle = null;
 
-        int WasCycle800 = 0;
+        double Plane_;
 
         int CSOnCount = 0;
 
@@ -49,42 +135,22 @@ namespace SprutTechnology.SCPostprocessor
         int ExcitedAxBBrake; // 0-need't output, 1-need output
         int ExcitedAxCBrake; // 0-need't output, 1-need output
 
-        double CycleOn;      // Включен ли цикл
-        double Cycle_pocket; 
+        double DAM;
+        double VARI;
+        double VRT;
 
-        int PolarInterp;     // Полярная интерполяция: 0-выключена, 1-включена
- 
         #endregion
 
         #region Extentions
-
-        public void Cycle800SwitchOff(){
-            if(nc.G.Changed)
-                nc.Block.Show();
-            else
-                nc.Block.Hide();
-            if (WasCycle800 != 0) {
-                nc.WriteLine($"{nc.BlockN} CYCLE800()");
-                nc.BlockN.v += 1;
-                WasCycle800 = 0;
-            }
-        }
-
-        public void Cycle800(int v_FR, string v_TC, int v_ST, int v_MODE, double v_X0, 
-            double v_Y0, double v_Z0, double v_A, double v_B, double v_C, 
-            double v_X1, double v_Y1, double v_Z1, int v_DIR, double v_FR_I){
-            nc.WriteLine($"{nc.BlockN} CYCLE800({v_FR},\"{v_TC}\",{v_ST},{v_MODE},{v_X0},{v_Y0},{v_Z0},{v_A},{v_B},{v_C},{v_X1},{v_Y1},{v_Z1},{v_DIR},{v_FR_I},0)");
-            nc.BlockN.v += 1;
-        }
 
         public void CheckAxesBrake(int ABrake, int BBrake, int CBrake){
             int NeedAxesBrake, tInterp;
 
             NeedAxesBrake = 0;
             if (NeedAxesBrake > 0){ 
-                if (nc.G.v != nc.G.v0) {
-                    tInterp = (int)nc.G.v;
-                    nc.G.v = nc.G.v0;
+                if (nc.GInterp.v != nc.GInterp.v0) {
+                    tInterp = (int)nc.GInterp.v;
+                    nc.GInterp.v = nc.GInterp.v0;
                 } else
                 tInterp = -1;
 
@@ -143,7 +209,7 @@ namespace SprutTechnology.SCPostprocessor
                     nc.MCBreak.v0 = nc.MCBreak.v;
                 }
 
-                if (tInterp >= 0) nc.G.v = tInterp;
+                if (tInterp >= 0) nc.GInterp.v = tInterp;
             }   
         }
 
@@ -263,28 +329,43 @@ namespace SprutTechnology.SCPostprocessor
 
             PrintCS(prj);
             nc.WriteLine();
+
+            Cycle = new SinumerikCycle(nc);
         }
 
-        public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine("; " + op.Comment);
+        public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine($";{op.Comment}");
         
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
+            nc.ResetCounting();
             int OldCoordSys;
             OldCoordSys = (int)nc.CoordSys.v0; nc.CoordSys.v0 = nc.CoordSys.v;
             nc.Tool.v = cmd.TechOperation.Tool.Number; nc.Tool.v0 = double.MaxValue;
             nc.DTool.v = Abs(cld[6]); nc.DTool.v0 = nc.DTool.v;
             if(cmd.TechOperation.Tool.Command != null){
-                nc.OutText($"{nc.Tool}; {cmd.TechOperation.Tool.Caption}");
+                nc.OutText($"{cmd.TechOperation.Tool.Caption}");
                 nc.OutText("M6");
             }
-            nc.CoordSys.v0 = double.MaxValue;
+            
             Plane_ = ((double)cmd.Plane);
+            nc.Feed.v0 = double.MaxValue;  nc.Feed.v = nc.Feed.v0;
+            nc.GInterp.v = double.MaxValue; nc.GInterp.v0 = nc.GInterp.v;
+            //S@ = double.MaxValue; S = S@;
+            nc.X.v = double.MaxValue; nc.X.v0 = nc.X.v;
+            nc.Y.v = double.MaxValue; nc.Y.v0 = nc.Y.v;
+            nc.Z.v = double.MaxValue; nc.Z.v0 = nc.Z.v;
+            nc.A.v = double.MaxValue; nc.A.v0 = nc.A.v;
+            nc.B.v = double.MaxValue; nc.B.v0 = nc.B.v;
+            nc.C.v = double.MaxValue; nc.C.v0 = nc.C.v;
+            nc.GPlane.v = double.MaxValue; nc.GPlane.v0 = nc.GPlane.v;
+            nc.CoordSys.v0 = double.MaxValue;
         }
 
         public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld) => nc.GPlane.v = ((double)cmd.Plane);
 
         public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
         {
+            nc.ResetCounting();
             if (cmd.IsOn) { // Spindle On
                 nc.GPlane.v = Plane_;
                 if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0))
@@ -302,134 +383,105 @@ namespace SprutTechnology.SCPostprocessor
                 }
             } else if (cmd.IsOff){ // Spindle Off
                 nc.Msp.v = 5; //Msp30 = double.MaxValue;
-                nc.MCoolant.v = 9;
                 nc.Block.Out();
             } else if (cmd.IsOrient) { /* Spindle Orient*/ }
         }
 
-        public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine();
+        //public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine();
 
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
+            nc.ResetCounting();
             CheckAxesBrake(2, 2, 2);
-            if (CycleOn == 0  || Cycle_pocket == 1) {  // Другой вывод для сверлильных циклов позиций отверстий
-                if ((nc.G.v > 1) && (nc.G.v < 4))  nc.G.v = 1;
+            if (Cycle.State.CycleOn == 0  || Cycle.State.Cycle_pocket == 1) {  // Другой вывод для сверлильных циклов позиций отверстий
+                if ((nc.GInterp.v > 1) && (nc.GInterp.v < 4))  nc.GInterp.v = 1;
 
-                nc.X.v = cld[1];                      // X,Y,Z in absolutes
-                nc.Y.v = cld[2];
-                nc.Z.v = cld[3];
+                nc.X.v = cmd.EP.X;                      // X,Y,Z in absolutes
+                nc.Y.v = cmd.EP.Y;
+                nc.Z.v = cmd.EP.Z;
                 nc.OutText();                     // output in block NC programm
+                Cycle.SetPosition(nc.X.v, nc.Y.v, nc.Z.v);    // current coordinates
             } 
+            Cycle.SetPosition(cld[1], cld[2], cld[3]);   //Запоминаем координаты отвертсий
+            Cycle.SetPocketStatus(0); // Выключаем метку для цикла покетов 
         }
 
         public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
         {
-            nc.Feed.v0 = nc.Feed.v;
             nc.Feed.v = cmd.FeedValue;
             if (cld[3] == 315)  nc.GFeed.v = 94;
             else nc.GFeed.v = 95;
             nc.GFeed.Hide();
-            nc.G.v = 1;   // G1
+            nc.GInterp.v = 1;   // G1
         }
 
         public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
         {
-            if (nc.G.v >= 0) 
-                nc.G.v = nc.G.v;
+            nc.ResetCounting();
+            CheckAxesBrake(2, 2, 2);
 
-            if ((nc.G.v != 0) && (nc.G.v != 1)) 
-                nc.G.v = 1;
+            if ((nc.GInterp.v != 0) && (nc.GInterp.v != 1)) 
+                nc.GInterp.v = 1;
 
             //N50 G0 B0 C0
-            foreach(CLDMultiMotionAxis axis in cmd.Axes){
-                if(axis.IsX){
-                    nc.X.v = axis.Value;
-                    nc.X.v0 = double.NaN;
-                }  
-                else if(axis.IsY){
-                    nc.Y.v = axis.Value;
-                    nc.Y.v0 = double.NaN;
-                }
-                else if(axis.IsZ){
-                    nc.Z.v = axis.Value;
-                    nc.Z.v0 = double.NaN;
-                }
-                else if(axis.IsA){
-                    nc.A.v = axis.Value;
-                    nc.A.v0 = double.NaN;
-                }
-                else if(axis.IsB){
-                    nc.B.v = axis.Value;
-                    nc.B.v0 = double.NaN;
-                }
-                else if(axis.IsC){
-                    nc.C.v = axis.Value;
-                    nc.C.v0 = double.NaN;
-                }
-            }
+            nc.SetAxisValues(cmd, Cycle);
             
-            if(nc.Feed.v != 10000)
-                nc.Feed.UpdateState();
-            nc.G.UpdateState();
-            nc.Block.Out();
+            nc.GInterp.UpdateState();
+            if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed || nc.A.Changed || nc.B.Changed || nc.C.Changed)
+                nc.Block.Out();
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
         {
             //N230 G3 X-810.31 Y-8.355 I=AC(-771.052) J=AC(-0.977)
+            nc.ResetCounting();
 
             nc.X.v = cmd.EP.X; nc.Y.v = cmd.EP.Y; nc.Z.v = cmd.EP.Z;
             nc.X.v0 = double.MaxValue; nc.Y.v0 = double.MaxValue; nc.Z.v0 = double.MaxValue;
             nc.I.v = cmd.Center.X; nc.J.v = cmd.Center.Y;
             nc.I.v0 = double.MaxValue; nc.J.v0 = double.MaxValue;
-            nc.G.v = cld[4] * Sgn(cld[17]) > 0 ? 3 : 2; //G3/G2
+            nc.GInterp.v = cld[4] * Sgn(cld[17]) > 0 ? 3 : 2; //G3/G2
+
+            if ((Abs(nc.GPlane.v) == 17) && (Cycle.State.ZT_ /*cmd.SP.Z*/ == nc.Z.v))
+                nc.Z.v0 = nc.Z.v;
+            else if ((Abs(nc.GPlane.v)==18) && (Cycle.State.YT_ /*cmd.SP.Y*/ == nc.Y.v))
+                nc.Y.v0 = nc.Y.v;
+            else if ((Abs(nc.GPlane.v)==19) && (Cycle.State.XT_ /*cmd.SP.X*/ == nc.X.v))
+                nc.X.v0 = nc.X.v;
 
             // Если спираль, то выводим Turn (количество оборотов) явно
-            if ((Abs(cmd.Plane) == 17) && (cmd.SP.Z != nc.Z.v)){
+            if ((Abs(cmd.Plane) == 17) && (Cycle.State.ZT_/*cmd.SP.Z*/ != nc.Z.v)){
                 nc.SetDefaultSpiralTurn();
-                if ((cmd.SP.X == nc.X.v) && (cmd.SP.Y == nc.Y.v))
+                if ((Cycle.State.XT_/*cmd.SP.X*/ == nc.X.v) && (Cycle.State.YT_/*cmd.SP.Y*/ == nc.Y.v))
                     nc.Turn.v = 1;  // полный оборот
             } 
-            else if ((Abs(cmd.Plane) == 18) && (cmd.SP.Y  != nc.Y.v)) {
+            else if ((Abs(cmd.Plane) == 18) && (Cycle.State.YT_/*cmd.SP.Y*/  != nc.Y.v)) {
                 nc.SetDefaultSpiralTurn();
-                if ((cmd.SP.X == nc.X.v) && (cmd.SP.Z == nc.Z.v))
+                if ((Cycle.State.XT_/*cmd.SP.X*/ == nc.X.v) && (Cycle.State.ZT_/*cmd.SP.Z*/ == nc.Z.v))
                     nc.Turn.v = 1;  // полный оборот
             } 
-            else if ((Abs(cmd.Plane) == 19) && (cmd.SP.X != nc.X.v)){
+            else if ((Abs(cmd.Plane) == 19) && (Cycle.State.XT_/*cmd.SP.X*/ != nc.X.v)){
                 nc.SetDefaultSpiralTurn();
-                if ((cmd.SP.Y  == nc.Y.v) && (cmd.SP.Z == nc.Z.v)) 
+                if ((Cycle.State.YT_/*cmd.SP.Y*/  == nc.Y.v) && (Cycle.State.ZT_/*cmd.SP.Z*/ == nc.Z.v)) 
                     nc.Turn.v = 1;  // полный оборот
             };
             nc.OutText(); 
+            Cycle.SetPosition(nc.X.v, nc.Y.v, nc.Z.v);
         }
 
         public override void OnPhysicGoto(ICLDPhysicGotoCommand cmd, CLDArray cld)
         {
-            if(nc.G.Changed)
+            nc.ResetCounting();
+            if(nc.GInterp.Changed)
                 nc.Block.Show();
             else
                 nc.Block.Hide();
-            Cycle800SwitchOff();
-            if (cmd.Ptr["Axes(AxisXPos)"] != null) {
-                nc.X.v = cmd.Flt["Axes(AxisXPos).Value"]; nc.X.v0 = double.MaxValue;
-            }
-            if (cmd.Ptr["Axes(AxisYPos)"] != null) {
-                nc.Y.v = cmd.Flt["Axes(AxisYPos).Value"]; nc.Y.v0 = double.MaxValue;
-            }
-            if (cmd.Ptr["Axes(AxisZPos)"] != null) {
-                nc.Z.v = cmd.Flt["Axes(AxisZPos).Value"]; nc.Z.v0 = double.MaxValue;
-            }
-            if (cmd.Ptr["Axes(AxisAPos)"] != null) {
-                nc.A.v = cmd.Flt["Axes(AxisAPos).Value"]; nc.A.v0 = double.MaxValue;
-            }
-            if (cmd.Ptr["Axes(AxisBPos)"] != null) {
-                nc.B.v = cmd.Flt["Axes(AxisBPos).Value"]; nc.B.v0 = double.MaxValue;
-            }
-            if (cmd.Ptr["Axes(AxisCPos)"] != null) {
-                nc.C.v = cmd.Flt["Axes(AxisCPos).Value"]; nc.C.v0 = double.MaxValue;
-            }
-            if ((nc.X.v != nc.X.v0) || (nc.Y.v != nc.Y.v) || (nc.Z.v != nc.Z.v0) || (nc.A.v != nc.A.v0) || (nc.B.v != nc.B.v0) || (nc.C.v != nc.C.v0))
+            Cycle.Cycle800SwitchOff();
+
+            nc.SetAxisValues(cmd);
+
+            if (nc.X.Changed || nc.Y.Changed || nc.Z.Changed || nc.A.Changed || nc.B.Changed || nc.C.Changed)
             {
                 // nc.G.v = 53; nc.G.v0 = double.MaxValue;
                 nc.SUPA.v = 1; nc.SUPA.v0 = 0;
@@ -440,6 +492,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
         {
+            nc.ResetCounting();
             int v_Dir = 0, v_ST;
             double v_A, v_B, v_C;
 
@@ -448,7 +501,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.CoordSys.v = cld[5];
                 if (CSOnCount > 1){ 
                     nc.CoordSys.v0 = nc.CoordSys.v;
-                    Cycle800SwitchOff();
+                    Cycle.Cycle800SwitchOff();
                 }
             } else if (cld[4] == 1079) { // Local CS activation (CYCLE800)
                 nc.Block.Out();
@@ -472,7 +525,7 @@ namespace SprutTechnology.SCPostprocessor
 
                 if (cmd.Int["IsSpatial"] > 0)
                     //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
-                    Cycle800(0, "", v_ST, 0*128 + 0*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
+                    Cycle.Cycle800(0, "", v_ST, 0*128 + 0*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
                         cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
                         cmd.Flt["WCS.RotAngles.A"], cmd.Flt["WCS.RotAngles.B"], cmd.Flt["WCS.RotAngles.C"],
                         0, 0, 0, v_Dir, 0);
@@ -484,17 +537,18 @@ namespace SprutTechnology.SCPostprocessor
                     if (cmd.Ptr["Axes(AxisCPos)"] != null) v_C = cmd.Flt["Axes(AxisCPos).Value"];
                     else v_C = 0;
                     //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
-                    Cycle800(0, "", v_ST, 1*128 + 1*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
+                    Cycle.Cycle800(0, "", v_ST, 1*128 + 1*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
                         cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
                         v_A, v_B, v_C, 0, 0, 0, v_Dir, 0);
                 }
-                WasCycle800 = 1;
+                Cycle.SetCycle800Status(1);
             } else
                 throw new Exception("Unknown coordinate system");
         }
 
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
         {
+            nc.ResetCounting();
             switch (cld[1]) {
                 // case 50:  // StartSub
                 //     nc.Block.Out();
@@ -518,21 +572,17 @@ namespace SprutTechnology.SCPostprocessor
                 //     nc.Block.Out();
                 //     nc.WriteLine("CALL " + Chr(34) + "_N_" + NCSub.Name(cld[2]) + "_SPF" + Chr(34));
                 //     break;
-                // case 58: // TechInfo
-                //     IsFirstCycle = 1;
-                //     CSOnCount = 0;
-                //     type_op = cmd.Ptr["PPFun(TechInfo).Operation(1)"].Name;
-                //         // if type_op != "TST2DContouringOp" and type_op != "HoleMachiningOp" and type_op != "TSTFBMMillOp" then begin
-                //         //     G641_on_off = 1
-                //         // end else G641_on_off = 0
-                //     break;
+                case 58: // TechInfo
+                    Cycle.State.IsFirstCycle = 1;
+                    CSOnCount = 0;
+                    break;
                 case 59: // EndTechInfo
                     // if (G641_on_off == 10) {
                     //     BlockN = BlockN + BlockStep;
                     //     output "N"+str(blockN)+" G60";
                     //     G641_on_off = 0;
                     // }
-                    Cycle800SwitchOff();
+                    Cycle.Cycle800SwitchOff();
                     if (cmd.Int["PPFun(EndTechInfo).Enabled"] != 0) {
 
                             nc.M.v = 1;
@@ -547,9 +597,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
         {     
-            if(nc.G.v > 0) nc.G.v = 0; 
-            nc.Feed.v = cmd.FeedValue;
-            nc.Feed.Hide();
+            if(nc.GInterp.v > 0) nc.GInterp.v = 0; 
         }
 
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
@@ -566,6 +614,259 @@ namespace SprutTechnology.SCPostprocessor
                     //OutBlock
                     }
         }
+
+        public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
+        {
+            if (cld[1] == 71)
+                if (cld[2] == 1)
+                    nc.MCoolant.v = 8; // жидкость
+                else if (cld[2] == 2) 
+                    nc.MCoolant.v = 8; // туман
+                else if (cld[2] == 3)
+                    nc.MCoolant.v = 8; // инструмент
+                else
+                    nc.MCoolant.v = 8; // что-то еще
+            else {
+                nc.MCoolant.v = 9;
+                nc.MCoolant.v0 = double.MaxValue;
+            }
+        }
+
+        public override void OnGoHome(ICLDGoHomeCommand cmd, CLDArray cld)
+        {
+            if (Cycle.State.CycleOn == 1) {
+                Cycle.SetStatus(0);
+            }
+            nc.Block.Out();
+            Cycle.Cycle800SwitchOff();
+            nc.SetAxisValues(cmd);
+            //CoordSys = 500; CoordSys@ = MaxReal
+            nc.SUPA.v = 1; nc.SUPA.v0 = 0;
+            nc.GInterp.v = 0; nc.GInterp.v0 = double.MaxValue;
+            nc.DTool.v = 0; // Корректор на длину
+            nc.Block.Out();
+            nc.GPlane.v = double.MaxValue; nc.GPlane.v0 = nc.GPlane.v;
+        }
+
+        public override void OnExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
+        {
+            int i;
+            int CycleNumber;       // Cycle number
+            string CycleName;      // Cycle name
+            string CycleGeomName;  // Имя подпрограммы-геометрии цикла
+            int CDIR;              // Thread direction 2-G2, 3-G3
+            double SDIR;           // Spindle rotation direction
+            double CurPos;         // Current position (applicate)
+            double CPA = 0;            // Absciss
+            double CPO = 0;            // Ordinate
+            double TempCoord;      // Auxiliary variable
+            double RTP, RFP, SDIS, DP, DPR;
+
+            if (cmd.IsOn) {
+                Cycle.SetStatus(1);      // ON
+                nc.GFeed.v = cld[9] == 1 ? 94 : 95;
+                nc.GFeed.Hide();
+                nc.Feed.v = cld[10];// Feed_@=MaxReal
+                nc.Block.Out();
+            }
+            else if (cmd.IsOff) Cycle.SetStatus(0); // OFF
+            else if (cmd.IsCall) { // CALL
+                CheckAxesBrake(2, 2, 2);
+
+                CycleNumber = 0;
+                CycleName = "CYCLE";
+                CycleGeomName = "";
+                switch(cmd.CycleType){
+                    case 473:
+                    case >= 481 and <=491:
+                        switch(Abs(nc.GPlane.v)){
+                            case 17: // XY
+                                CurPos = nc.Z.v;
+                                CPA = nc.X.v;
+                                CPO = nc.Y.v;
+                                break;
+                            case 18: // ZX
+                                CurPos = nc.Y.v;
+                                CPA = nc.Z.v;
+                                CPO = nc.X.v;
+                                break;
+                            case 19: // YZ
+                                CurPos = nc.X.v;
+                                CPA = nc.Y.v;
+                                CPO = nc.Z.v;
+                                break;
+                            default:
+                                CurPos = nc.Z.v;
+                                CPA = nc.X.v;
+                                CPO = nc.Y.v;
+                                throw new Exception("Undefined cycle plane");
+                        }
+                        if (nc.GPlane.v < 0) {
+                            TempCoord = CPA;
+                            CPA = CPO;
+                            CPO = TempCoord;
+                        }
+                        // Define base levels
+                        RTP = CurPos;
+                        RFP = CurPos - cld[7]*Sgn(nc.GPlane.v); // CurPos - Tp
+                        SDIS = cld[7] - cld[6]; // Tp - Sf
+                        DP = CurPos - cld[8]*Sgn(nc.GPlane.v); // CurPos - Bt
+                        DPR = cld[8] - cld[7]; // Bt - Tp
+                        // CycleXX(RTP,RFP,SDIS,DP)
+                        Cycle.AddPrm(RTP, 0);
+                        Cycle.AddPrm(RFP, 1);
+                        Cycle.AddPrm(SDIS, 2);
+                        Cycle.AddPrm(DP, 3);
+                        CycleNumber = 81;
+                        switch(cmd.CycleType){
+                            case 481: 
+                            case 482:
+                            case >= 485 and <=489: // Simple drilling
+                                CycleNumber = cmd.CycleType - 400;
+                                if (cld[15] > 0) Cycle.AddPrm(cld[15], 5); // Delay in seconds
+                                // Spindle rotation direction
+                                SDIR = nc.S.v > 0 ? 3 : 4;
+                                if ((cmd.CycleType == 486) || (cmd.CycleType == 488))
+                                    Cycle.AddPrm(SDIR, 6);
+                                else if (cmd.CycleType == 487)
+                                    Cycle.AddPrm(SDIR, 5);
+                                if (cmd.CycleType == 485) {
+                                    Cycle.AddPrm(cld[10], 6); // WorkFeed
+                                    Cycle.AddPrm(cld[14], 7); // ReturnFeed
+                                } else if (cmd.CycleType == 486) {
+                                    Cycle.AddPrm(0, 7); // RPA
+                                    Cycle.AddPrm(0, 8); // RPO
+                                    Cycle.AddPrm(0, 9); // RPAP
+                                    Cycle.AddPrm(0, 10); // POSS
+                                }
+                                break;
+                            case 473:
+                            case 483: // Deep drilling (473-chip breaking, 483-chip removing)
+                                CycleNumber = 83;
+                                Cycle.AddPrm(CurPos - (cld[7]+cld[17])*Sgn(nc.GPlane.v), 5); // FDEP = CurPos-(Tp+St)
+                                Cycle.AddPrm(cld[18], 7); // DAM - degression
+                                Cycle.AddPrm(cld[15], 8); // DTB - Bottom delay
+                                Cycle.AddPrm(cld[16], 9); // DTS - Top delay
+                                Cycle.AddPrm(1, 10); // FRF - First feed coef
+                                Cycle.AddPrm((cmd.CycleType == 473)? 0 : 1, 11); // VARI - breaking or removing
+                                // if (cmd.CycleType == 473) Cycle.AddPrm(0, 11); 
+                                // else Cycle.AddPrm(1, 11);
+                                Cycle.AddPrm(cld[18], 13);// _MDEP - Minimal deep step (=degression)
+                                if (cmd.CycleType == 473)
+                                    Cycle.AddPrm(cld[20], 14); // _VRT - LeadOut
+                                else
+                                    Cycle.AddPrm(cld[19], 16); // _DIS1 - Deceleration
+                                Cycle.AddPrm(0, 15); // _DTD - finish delay (if 0 then = DTB)
+                                break;
+                            case 484: // Tapping
+                                SDIR = nc.S.v > 0 ? 3 : 4;
+                                if (cld[19] == 1) { // Fixed socket
+                                    CycleNumber = 84;
+                                    Cycle.AddPrm(SDIR, 6); // SDAC
+                                    Cycle.AddPrm((nc.S.v > 0)? cld[17] : -cld[17], 8); // PIT
+                                    // if (nc.S.v > 0) Cycle.AddPrm(cld[17], 8);
+                                    // else Cycle.AddPrm(-cld[17], 8);
+                                    Cycle.AddPrm(cld[18], 9); // POSS
+                                    Cycle.AddPrm(1, 13); //  PTAB
+                                } else { // Floating socket
+                                    CycleNumber = 840;
+                                    Cycle.AddPrm(0, 6); // SDR
+                                    Cycle.AddPrm(SDIR, 7); // SDAC
+                                    Cycle.AddPrm(11, 8); // ENC
+                                    Cycle.AddPrm((nc.S.v > 0)? cld[17] : -cld[17], 10); // PIT
+                                    // if (nc.S.v > 0) Cycle.AddPrm(cld[17], 10);
+                                    // else Cycle.AddPrm(-cld[17], 10);
+                                    Cycle.AddPrm(1, 12);
+                                }
+                                if (Cycle.State.IsFirstCycle > 0) {
+                                    VARI = 0;
+                                    DAM = cld[2] / 5;
+                                    VRT = DAM / 5;
+                                    // Input "Введите параметры цикла нарезания резьбы CYCLE84:",
+                                    //       "Подтип цикла VARI (0-простое, 1-ломка стружки, 2-удаление стружки)", VARI,
+                                    //       "Шаг для ломки стружки (DAM)", DAM,
+                                    //       "Отвод при ломке стружки (VRT)", VRT
+                                }
+                                if (VARI > 0) {
+                                    Cycle.AddPrm(VARI, 15); //VARI
+                                    Cycle.AddPrm(DAM, 16);  //DAM
+                                    Cycle.AddPrm(VRT, 17);  //VRT
+                                }
+                                break;
+                            case 490: // Thread milling
+                                CycleNumber = 90;
+                                Cycle.AddPrm(cld[16], 5); // DIATH - Outer diameter
+                                Cycle.AddPrm(cld[16] - cld[22] * 2, 6); // KDIAM - Inner diameter
+                                Cycle.AddPrm(cld[17], 7); // PIT - thread step
+                                Cycle.AddPrm(cld[10], 8); // FFR - Work feed
+                                CDIR = cld[19]; // CDIR - Spiral direction
+                                if ((CDIR != 2) && (CDIR != 3))
+                                    if ((nc.S.v > 0) && (CDIR == 0))       CDIR = 3;
+                                    else if ((nc.S.v <= 0) && (CDIR == 0)) CDIR = 2;
+                                    else if ((nc.S.v > 0) && (CDIR == 1))  CDIR = 2;
+                                    else if ((nc.S.v <= 0) && (CDIR == 1)) CDIR = 3;
+
+                                Cycle.AddPrm(CDIR, 9);
+                                Cycle.AddPrm(cld[18], 10); // TYPTH - 0-inner, 1-outer thread
+                                Cycle.AddPrm(CPA, 11); // CPA - Center X
+                                Cycle.AddPrm(CPO, 12); // CPO - Center Y
+                                break;
+                            case 491: // Hole pocketing
+                                CycleNumber = 4;
+                                CycleName = "POCKET";
+                                Cycle.SetPocketStatus(1);
+                                Cycle.AddPrm(0.5 * cld[16], 4);// PRAD - Radius
+                                Cycle.AddPrm(CPA, 5); // PA - Center X
+                                Cycle.AddPrm(CPO, 6);// PO - Center Y
+                                Cycle.AddPrm(cld[20], 7); // MID - Deep step
+                                Cycle.AddPrm(0, 8); // FAL - finish wall stock
+                                Cycle.AddPrm(0, 9); // FALD - finish deep stock
+                                Cycle.AddPrm(cld[10], 10); // FFP1 - Work feed
+                                Cycle.AddPrm(cld[12], 11); // FFD - Plunge feed
+                                CDIR = cld[19];
+                                if (CDIR <= 1) CDIR = 1 - CDIR;
+                                Cycle.AddPrm(CDIR, 12); // CDIR - Spiral direction
+                                Cycle.AddPrm(21, 13); // VARI - Rough spiral machining
+                                Cycle.AddPrm(cld[22], 14);// MIDA - Horizontal step
+                                Cycle.AddPrm(0.5 * cld[18], 17); // RAD1 - Spiral radius
+                                Cycle.AddPrm(cld[17], 18); // DP1 - Spiral step
+                                break;
+                        }
+                        break;// 5D Drilling cycles
+                } // end cmd.CycleType
+
+                if (cmd.CycleType == 491){// Для карманов POCKET
+                    Cycle.OutCycle(CycleName+Str(CycleNumber), CycleGeomName);
+                    nc.GInterp.v0 = double.MaxValue;
+                }else { // Вывод цикла MCALL для группы отверстий
+                    Cycle.OutCycle("MCALL" + " " + CycleName + Str(CycleNumber), CycleGeomName);
+                    Cycle.Cycle_position();  //Вывод позиций отверстий
+                }
+                Cycle.SetFirstStatus(0);
+            }
+
+            if (cmd.IsOff && cmd.CycleType != 491) {//Выключение цикла
+                nc.WriteLine($"{nc.BlockN} MCALL");
+                nc.BlockN.v += 1;
+                Cycle.SetFirstStatus(1);
+                Cycle.SetCycleCompareString(""); // Принудительно стираем, т.к. цикл закрыт
+            } //Выключение цикла
+        }
+
+        public override void OnFini(ICLDFiniCommand cmd, CLDArray cld)
+        {
+            CheckAxesBrake(0, 0, 0);
+            CheckAxesBrake(2, 2, 2);
+            nc.Block.Out();
+            nc.M.v = 30;  // M30 end programm
+            nc.M.v0 = double.MaxValue;
+            nc.Block.Out();
+            //NCSub.Output // Выводим все неоттранслированные ранее подпрограммы
+        }
+
+        public override void StopOnCLData()
+        {
+            base.StopOnCLData();
+        }
     }
 }
-

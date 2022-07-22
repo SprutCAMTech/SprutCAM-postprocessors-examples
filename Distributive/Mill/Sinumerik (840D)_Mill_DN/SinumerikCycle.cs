@@ -13,6 +13,7 @@ namespace SprutTechnology.SCPostprocessor{
         public double CycleOn;      // Включен ли цикл
 
         public int PolarInterp;     // Полярная интерполяция: 0-выключена, 1-включена
+        public int CylindInterp;     // Цилиндрическая интерполяция: 0-выключена, >0-включена
 
         public double IsFirstCycle; // 1 - если это первый цикл в операции, иначе - 0
 
@@ -34,26 +35,44 @@ namespace SprutTechnology.SCPostprocessor{
 
         NCFile nc;
 
+        Postprocessor post;
+
         public CycleState State;
 
-        public SinumerikCycle(NCFile nc){
-            this.nc = nc;
+        #region Parametrs
+
+        public double CycleOn => State.CycleOn;
+        public double Cycle_pocket => State.Cycle_pocket;
+        public double IsFirstCycle => State.IsFirstCycle;
+
+        public double PolarInterp => State.PolarInterp; 
+
+        public InpArray<double> Prms => State.Prms;
+
+        public double XT_ => State.XT_; 
+        public double YT_ => State.YT_; 
+        public double ZT_ => State.ZT_; 
+
+        #endregion
+
+        public SinumerikCycle(Postprocessor post){
+            this.post = post;
+            nc = post.nc;
             State = new CycleState();
         }
 
         public void AddPrm(double value, int i) => State.AddPrm(value, i);
 
         public void Cycle800SwitchOff(){
-            if(nc.GInterp.Changed)
-                nc.Block.Show();
-            else
-                nc.Block.Hide();
+            double tInterp;
+            tInterp = nc.GInterp.v0; nc.GInterp.v0 = nc.GInterp.v;
             nc.Block.Out();
             if (State.WasCycle800 != 0) {
                 nc.WriteLine($"{nc.BlockN} CYCLE800()");
                 nc.BlockN.v += 1;
                 this.SetCycle800Status(0);
             }
+            nc.GInterp.v0 = tInterp;
         }
 
         public void Cycle800(int v_FR, string v_TC, int v_ST, int v_MODE, double v_X0, 
@@ -68,23 +87,28 @@ namespace SprutTechnology.SCPostprocessor{
             string sss; 
 
             sss = ACycleID;
-            if (State.Prms.Count > 0)
+            if (Prms.Count > 0)
                 sss = sss + "(";
             if (CycleGeomName != "")
                 sss = sss + Chr(34) + CycleGeomName + Chr(34);
             n = 0;
-            for (i = 0; i < State.Prms.Count; i++){
+            for (i = 0; i < Prms.Count; i++){
+                if (Prms[i] != double.MaxValue) n = i + 1;  
+            }
+            for (i = 0; i < n; i++){
                 if ((i > 0) || (CycleGeomName != "")) 
                     sss = sss + ",";
-                sss = sss + Str(Math.Round(State.Prms[i], 3));  
+                if (Prms[i] != double.MaxValue)
+                    sss = sss + Str(Math.Round(Prms[i], 3));  
             }
-            if (State.Prms.Count > 0) sss = sss + ")";
+            if (Prms.Count > 0) sss = sss + ")";
             if (State.Cyclecompare != sss) {       //Добавил вариант для того, чтобы выводить массив отверстий одним циклом
-                if (State.IsFirstCycle != 1 && State.Cycle_pocket == 0) {          //меняется параметр, нужно закрыть цикл
+                if (IsFirstCycle != 1 && Cycle_pocket == 0) {          //меняется параметр, нужно закрыть цикл
                     nc.WriteLine($"{nc.BlockN} MCALL"); nc.BlockN.v += 1;
-                    nc.X.v = State.XT_ ; nc.Y.v = State.YT_ ; nc.GInterp.v0 = double.MaxValue ; nc.Block.Out();   //Холостые ходы между проходами
+                    nc.X.v = XT_ ; nc.Y.v = YT_ ; nc.GInterp.v0 = double.MaxValue ; nc.Block.Out();   //Холостые ходы между проходами
                 }
-                nc.WriteLine($"{nc.BlockN} {sss}"); //Вывод цикла
+                var t = nc.GInterp.Changed ? nc.GInterp : null;
+                nc.WriteLine($"{nc.BlockN} {t}{sss}"); //Вывод цикла
                 nc.BlockN.v += 1;
                 // nc.Block.Form();
                 // TextNCWord word = new TextNCWord("", "", ""); word.v = sss;
@@ -96,19 +120,19 @@ namespace SprutTechnology.SCPostprocessor{
         public void Cycle_position(){
             switch(Abs(nc.GPlane.v)){
                 case 17:
-                    if (State.IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
+                    if (IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
                     nc.X.v0 = double.MaxValue; nc.Y.v0 = double.MaxValue;
-                    nc.X.v = State.XT_; nc.Y.v = State.YT_ ; nc.Block.Out(); // Вывод отверстий  ! XY
+                    nc.X.v = XT_; nc.Y.v = YT_ ; nc.Block.Out(); // Вывод отверстий  ! XY
                     break;
                 case 18:
-                    if (State.IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
+                    if (IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
                     nc.Z.v0 = double.MaxValue; nc.X.v0 = double.MaxValue;
-                    nc.Z.v = State.ZT_; nc.X.v = State.XT_ ; nc.Block.Out(); // Вывод отверстий  ! ZX
+                    nc.Z.v = ZT_; nc.X.v = XT_ ; nc.Block.Out(); // Вывод отверстий  ! ZX
                     break;
                 case 19:
-                    if (State.IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
+                    if (IsFirstCycle == 1) //Не выводит первое отверстие в цикле, т.к. считает что оно уже выведено
                     nc.Y.v0 = double.MaxValue; nc.Z.v0 = double.MaxValue;
-                    nc.Y.v = State.YT_; nc.Z.v = State.ZT_ ; nc.Block.Out(); // Вывод отверстий  ! YZ
+                    nc.Y.v = YT_; nc.Z.v = ZT_ ; nc.Block.Out(); // Вывод отверстий  ! YZ
                     break;
             }
         }

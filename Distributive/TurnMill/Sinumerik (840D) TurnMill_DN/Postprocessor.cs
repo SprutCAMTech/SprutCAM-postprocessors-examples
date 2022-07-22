@@ -275,7 +275,9 @@ namespace SprutTechnology.SCPostprocessor
                             nc.Lims.v = cmd.RPMValue;
                             nc.Block.Out();
 
-                            nc.GCssRpm.v = 96;
+                            nc.GCssRpm.v = 96; //G96 - by default => needs to change the state
+                            nc.GCssRpm.Show();
+
                             if (activeLatheSpindle == 1)
                             {
                                 nc.S.v = cmd.CSSValue; //cld[5]

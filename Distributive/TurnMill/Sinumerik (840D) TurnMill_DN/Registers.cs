@@ -211,7 +211,8 @@ namespace SprutTechnology.SCPostprocessor
                 C,
                 C_,
                 C2,
-                SetMS
+                SetMS,
+                Lims
             );
             OnInit();
         }

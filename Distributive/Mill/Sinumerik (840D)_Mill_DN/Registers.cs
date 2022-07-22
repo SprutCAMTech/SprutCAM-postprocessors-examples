@@ -39,9 +39,11 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>C coordinate of the movement</summary>
         public NumericNCWord C = new NumericNCWord("C{-#####.###}", double.NaN);
         ///<summary>Circle I coordinate</summary>
-        public NumericNCWord I = new NumericNCWord("I=AC({-#####.###})", double.NaN);
+        public NumericNCWord XC_ = new NumericNCWord("I=AC({-#####.###})", double.NaN);
         ///<summary>Circle J coordinate</summary>
-        public NumericNCWord J = new NumericNCWord("J=AC({-#####.###})", double.NaN);
+        public NumericNCWord YC_ = new NumericNCWord("J=AC({-#####.###})", double.NaN);
+        ///<summary>Circle K coordinate</summary>
+        public NumericNCWord ZC_ = new NumericNCWord("K=AC({-#####.###})", double.NaN);
         ///<summary>S spindle speed</summary>
         public NumericNCWord S = new NumericNCWord("S{#####}", 0);
         ///<summary>Length correction for tool</summary>
@@ -83,8 +85,9 @@ namespace SprutTechnology.SCPostprocessor
                   A,
                   B,
                   C,
-                  I,
-                  J,
+                  XC_,
+                  YC_,
+                  ZC_,
                   S,
                   DTool,
                   Turn,

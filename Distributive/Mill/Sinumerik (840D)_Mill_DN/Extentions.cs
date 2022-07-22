@@ -14,10 +14,17 @@ namespace SprutTechnology.SCPostprocessor{
         }
 
         ///<summary>Set polar interpolation status of the cycle: 0 - off, 1 - on</summary>
-        public static SinumerikCycle SetInterpolationStatus(this SinumerikCycle cycle, int status){
+        public static SinumerikCycle SetPolarInterpolationStatus(this SinumerikCycle cycle, int status){
             cycle.State.PolarInterp = status;
             return cycle;
         }
+
+        ///<summary>Set cilind interpolation status of the cycle: 0 - off, 1 - on</summary>
+        public static SinumerikCycle SetCilindInterpolationStatus(this SinumerikCycle cycle, int status){
+            cycle.State.CylindInterp = status;
+            return cycle;
+        }
+
 
         ///<summary>Set first status of the cycle: 0 - not first cycle, 1 - first cycle</summary>
         public static SinumerikCycle SetFirstStatus(this SinumerikCycle cycle, int status){

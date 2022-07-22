@@ -52,6 +52,9 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Type of current operation (mill, lathe, etc.)</summary>
         OpType currentOperationType = OpType.Unknown;
+
+        ///<summary>Type of active lathe spindle (main, counter)</summary>
+        int activeLatheSpindle;
  
         #endregion
 
@@ -94,8 +97,8 @@ namespace SprutTechnology.SCPostprocessor
         {
             // One empty line between operations 
             nc.WriteLine();
-
-            //currentOperationType = (OpType)(int)cld[60];
+            
+            currentOperationType = (OpType)(int)cld[60];
         }  
 
         public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
@@ -113,9 +116,9 @@ namespace SprutTechnology.SCPostprocessor
 
                 if(Abs(cmd.EN.A) > 0.0001 | Abs(cmd.EN.B) > 0.0001 | Abs(cmd.EN.C) > 0.0001)
                 {
-                    nc.A.v = cmd.EN.A;
-                    nc.B.v = cmd.EN.B;
-                    nc.C.v = cmd.EN.C;
+                    nc.RotA.v = cmd.EN.A;
+                    nc.RotB.v = cmd.EN.B;
+                    nc.RotC.v = cmd.EN.C;
                 }
                 nc.X.v = cmd.EP.X;
                 nc.Y.v = cmd.EP.Y;
@@ -161,19 +164,89 @@ namespace SprutTechnology.SCPostprocessor
             else Debug.WriteLine("Wrong given a plane of processing");
         }
 
-        //or (CUTCOM)
-        public override void OnRadiusCompensation(ICLDCutComCommand cmd, CLDArray cld)
+        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
         {
             if (cmd.IsOn) {
-                if (cmd.IsLeftDirection)
-                    nc.GRCompens.Show(41);
-                else
-                    nc.GRCompens.Show(42);
-            } else {
+                if (cmd.IsLeftDirection) nc.GRCompens.Show(41);
+                else nc.GRCompens.Show(42);
+            } 
+            else {
                 nc.GRCompens.v = 40;
             }
         }
-        
+
+        //Задаются координаты исходной точки
+        public override void OnFrom(ICLDFromCommand cmd, CLDArray cld)
+        {
+            nc.X.v = currentOperationType is OpType.Lathe ? cld[1] * 2 : cld[1];
+            nc.Y.v = cmd.EP.Y;
+            nc.Z.v = cmd.EP.Z;
+        }
+
+        private void DetectSpindle(ICLDSelWorkpieceCommand cmd)
+        {
+            var ts = cmd.CLDataS.ToUpper();
+            if (ts.IndexOf("COUNT") > 0 || ts.IndexOf("SUB") > 0 || ts.IndexOf("SECOND") > 0)
+            {
+                activeLatheSpindle = 2;                    
+            }
+
+            else activeLatheSpindle = 1;
+        }
+
+        //выбор активной державки заготовки          
+        public override void OnSelWorkpiece(ICLDSelWorkpieceCommand cmd, CLDArray cld)
+        {
+            DetectSpindle(cmd);
+            currentOperationType = OpType.Lathe;
+        }
+
+        public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
+        {
+            if (cld[1] == 71)
+            {
+                if (currentOperationType == OpType.Mill)
+                {
+                    nc.GPlane.v = cld[14];
+                    nc.Block.Out();
+
+                    if (activeLatheSpindle == 1)
+                    {
+                        //lastC = 0
+                        nc.C.v = 0; //подключение оси  C
+                    }
+                    else
+                    {
+                        nc.C2.v = 0;
+                    }
+                    nc.Block.Out();
+                    nc.SetMS.v = 3; //Активация приводного инструмента 
+                    nc.Block.Out();
+
+                    //check the spindle rotation mode (RPM or CSS).
+                    switch (cmd.SpeedMode)
+                    {
+                        case CLDSpindleSpeedMode.Unknown: 
+                            nc.GCssRpm.v = 97;
+                            break;
+                        case CLDSpindleSpeedMode.CSS:
+
+                            break;
+                    }
+                }
+            }
+
+            else if (cld[1] == 72)
+            {
+
+            }
+
+            else if (cld[1] == 246)
+            {
+
+            }
+        }
+
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
         {
             base.OnRapid(cmd, cld);
@@ -190,12 +263,13 @@ namespace SprutTechnology.SCPostprocessor
             if (nc.GInterp.v == 33) nc.Block.Show(nc.F, nc.GInterp);
             if (nc.GPolarOrCyl.v == 1)
             {
-                nc.X.v = cmd.EP.X * cosecant(nc.C.v) - cmd.EP.Y * secant(nc.C.v);
-                nc.Y.v = cmd.EP.Y * cosecant(nc.C.v) + cmd.EP.X * secant(nc.C.v);
+                nc.X.v = cmd.EP.X * cosecant(nc.RotC.v) - cmd.EP.Y * secant(nc.RotC.v);
+                nc.Y.v = cmd.EP.Y * cosecant(nc.RotC.v) + cmd.EP.X * secant(nc.RotC.v);
             }
 
             else
             {
+                xScale = 2;
                 nc.X.v = cmd.EP.X * xScale; //xScale = 2
                 nc.Y.v = cmd.EP.Y;
             }

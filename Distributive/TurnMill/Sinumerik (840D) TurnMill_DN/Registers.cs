@@ -37,7 +37,9 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord GCssRpm = new NumericNCWord("G{##}", 96);
 
         ///<summary>Spindle speed value</summary>
-        public NumericNCWord S = new NumericNCWord("S{####}", 0);
+        public NumericNCWord S = new NumericNCWord("S{#####}", 0);
+        public NumericNCWord S2 = new NumericNCWord("S2={#####}", 0);
+        public NumericNCWord S3 = new NumericNCWord("S3={#####}", 0);
 
         ///<summary>M03, M04, M05 - spindle switch on-off code</summary>
         public NumericNCWord MSpindle = new NumericNCWord("M{00}", 5);
@@ -70,13 +72,13 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord Z = new NumericNCWord("Z{-#####!###}", 0);
 
         ///<summary>A axis angle</summary>
-        public NumericNCWord A = new NumericNCWord("A{-#####!###}", 0);
+        public NumericNCWord RotA = new NumericNCWord("A{-#####!###}", 0);
 
         ///<summary>B axis angle</summary>
-        public NumericNCWord B = new NumericNCWord("B{-#####!###}", 0);
+        public NumericNCWord RotB = new NumericNCWord("B{-#####!###}", 0);
         
         ///<summary>C axis angle</summary>
-        public NumericNCWord C = new NumericNCWord("C{-#####!###}", 0);
+        public NumericNCWord RotC = new NumericNCWord("C{-#####!###}", 0);
 
         ///<summary>U - incremental X axis movement</summary>
         public NumericNCWord U = new NumericNCWord("U{-#####!###}", 0);
@@ -138,6 +140,18 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Text comment at the end of the block</summary>
         public TextNCWord TrailingComment = new TextNCWord("( ", "", " )");
 
+        ///<summary> SPOS[1]=@ </summary>
+        public NumericNCWord C = new NumericNCWord("SPOS[1]={#####!###}", 0);
+
+        ///<summary> SPOS[1]=IC(@) </summary>
+        public NumericNCWord C_ = new NumericNCWord("SPOS[1]=IC{#####!###}", 0);
+
+        ///<summary> SPOS[2]=@ </summary>
+        public NumericNCWord C2 = new NumericNCWord("SPOS[2]={#####!###}", 0);
+
+        ///<summary> Drive tool </summary>
+        public NumericNCWord SetMS = new NumericNCWord("SETMS({#})", 0);
+
         public NCFile(): base()
         {
             Block = new NCBlock(this, 
@@ -158,7 +172,9 @@ namespace SprutTechnology.SCPostprocessor
                 X,
                 Y,
                 Z,
-                C,
+                RotA,
+                RotB,
+                RotC,
                 U,
                 V,
                 W,
@@ -181,7 +197,11 @@ namespace SprutTechnology.SCPostprocessor
                 MCoolant,
                 MCBrake,
                 PSubCall,
-                TrailingComment
+                TrailingComment,
+                C,
+                C_,
+                C2,
+                SetMS
             );
             OnInit();
         }

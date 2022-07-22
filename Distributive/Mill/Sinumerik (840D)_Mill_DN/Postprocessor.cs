@@ -335,6 +335,62 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine($";{Transliterate(op.Comment)}");
         
+        public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
+        {
+            nc.ResetCounting();
+            int v_Dir = 0, v_ST;
+            double v_A, v_B, v_C;
+
+            if (cld[4] == 0) {// Select standard workpiece CS
+                CSOnCount += 1;
+                nc.CoordSys.v = cld[5];
+                if (CSOnCount > 1){ 
+                    nc.CoordSys.v0 = nc.CoordSys.v;
+                    Cycle.Cycle800SwitchOff();
+                }
+            } else if (cld[4] == 1079) { // Local CS activation (CYCLE800)
+                nc.Block.Out();
+
+                if (cmd.Int["PositioningMode"] > 0) { // Turn, Move
+                    if (cmd.Ptr["Axes(AxisBPos)"] != null) 
+                        if (cmd.Flt["Axes(AxisBPos).Value"] >= 0) v_Dir = +1;
+                        else v_Dir = -1;
+
+                    if (cmd.Ptr["Axes(AxisAPos)"] != null)
+                        if (cmd.Flt["Axes(AxisAPos).Value"] >= 0) v_Dir = +1;
+                        else v_Dir = -1;
+                } else // Stay
+                    v_Dir = 0;
+
+                v_ST = 000000;
+                if (v_Dir > 0)
+                    v_ST = v_ST + 200000; // Direction selection "Plus" optimized, Swivel no direction "minus" off
+                else if (v_Dir < 0) 
+                    v_ST = v_ST + 100000; // Direction selection "Minus" optimized, Swivel no direction "plus" off
+
+                if (cmd.Int["IsSpatial"] > 0)
+                    //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
+                    Cycle.Cycle800(0, "", v_ST, 0*128 + 0*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
+                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
+                        cmd.Flt["WCS.RotAngles.A"], cmd.Flt["WCS.RotAngles.B"], cmd.Flt["WCS.RotAngles.C"],
+                        0, 0, 0, v_Dir, 0);
+                else{
+                    if (cmd.Ptr["Axes(AxisAPos)"] != null) v_A = cmd.Flt["Axes(AxisAPos).Value"];
+                    else v_A = 0;
+                    if (cmd.Ptr["Axes(AxisBPos)"] != null) v_B = cmd.Flt["Axes(AxisBPos).Value"];
+                    else v_B = 0;
+                    if (cmd.Ptr["Axes(AxisCPos)"] != null) v_C = cmd.Flt["Axes(AxisCPos).Value"];
+                    else v_C = 0;
+                    //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
+                    Cycle.Cycle800(0, "", v_ST, 1*128 + 1*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
+                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
+                        v_A, v_B, v_C, 0, 0, 0, v_Dir, 0);
+                }
+                Cycle.SetCycle800Status(1);
+            } else
+                throw new Exception("Unknown coordinate system");
+        }
+        
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
             nc.ResetCounting();
@@ -386,9 +442,29 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Block.Out();
             } else if (cmd.IsOrient) { /* Spindle Orient*/ }
         }
+        
+        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
+        {
+            if (cld[2] == 23)     // Radius
+                if (cld[1] == 72) // Off
+                    nc.KorEcv.v = 40;
+                else              // On
+                    if (cld[10] == 24) nc.KorEcv.v = 42;
+                    else nc.KorEcv.v = 41;
+            else if (cld[2] == 9) // Length
+                    if (cld[1] == 71) { // On
+                        nc.DTool.v = Abs(cld[3]); nc.DTool.v0 = nc.DTool.v;//MaxReal
+                    //OutBlock
+                    }
+        }
 
-        //public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld) => nc.WriteLine();
-
+        public override void OnFrom(ICLDFromCommand cmd, CLDArray cld)
+        {
+            nc.X.v = cld[1]; nc.X.v0 = double.MaxValue;
+            nc.Y.v = cld[1]; nc.Y.v0 = double.MaxValue;
+            nc.Z.v = cld[1]; nc.Z.v0 = double.MaxValue;
+            Cycle.SetPosition(nc.X.v, nc.Y.v, nc.Z.v);
+        }
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
@@ -506,62 +582,6 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
-        public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
-        {
-            nc.ResetCounting();
-            int v_Dir = 0, v_ST;
-            double v_A, v_B, v_C;
-
-            if (cld[4] == 0) {// Select standard workpiece CS
-                CSOnCount += 1;
-                nc.CoordSys.v = cld[5];
-                if (CSOnCount > 1){ 
-                    nc.CoordSys.v0 = nc.CoordSys.v;
-                    Cycle.Cycle800SwitchOff();
-                }
-            } else if (cld[4] == 1079) { // Local CS activation (CYCLE800)
-                nc.Block.Out();
-
-                if (cmd.Int["PositioningMode"] > 0) { // Turn, Move
-                    if (cmd.Ptr["Axes(AxisBPos)"] != null) 
-                        if (cmd.Flt["Axes(AxisBPos).Value"] >= 0) v_Dir = +1;
-                        else v_Dir = -1;
-
-                    if (cmd.Ptr["Axes(AxisAPos)"] != null)
-                        if (cmd.Flt["Axes(AxisAPos).Value"] >= 0) v_Dir = +1;
-                        else v_Dir = -1;
-                } else // Stay
-                    v_Dir = 0;
-
-                v_ST = 000000;
-                if (v_Dir > 0)
-                    v_ST = v_ST + 200000; // Direction selection "Plus" optimized, Swivel no direction "minus" off
-                else if (v_Dir < 0) 
-                    v_ST = v_ST + 100000; // Direction selection "Minus" optimized, Swivel no direction "plus" off
-
-                if (cmd.Int["IsSpatial"] > 0)
-                    //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
-                    Cycle.Cycle800(0, "", v_ST, 0*128 + 0*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
-                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
-                        cmd.Flt["WCS.RotAngles.A"], cmd.Flt["WCS.RotAngles.B"], cmd.Flt["WCS.RotAngles.C"],
-                        0, 0, 0, v_Dir, 0);
-                else{
-                    if (cmd.Ptr["Axes(AxisAPos)"] != null) v_A = cmd.Flt["Axes(AxisAPos).Value"];
-                    else v_A = 0;
-                    if (cmd.Ptr["Axes(AxisBPos)"] != null) v_B = cmd.Flt["Axes(AxisBPos).Value"];
-                    else v_B = 0;
-                    if (cmd.Ptr["Axes(AxisCPos)"] != null) v_C = cmd.Flt["Axes(AxisCPos).Value"];
-                    else v_C = 0;
-                    //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
-                    Cycle.Cycle800(0, "", v_ST, 1*128 + 1*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
-                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
-                        v_A, v_B, v_C, 0, 0, 0, v_Dir, 0);
-                }
-                Cycle.SetCycle800Status(1);
-            } else
-                throw new Exception("Unknown coordinate system");
-        }
-
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
         {
             nc.ResetCounting();
@@ -589,21 +609,6 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
         {     
             if(nc.GInterp.v > 0) nc.GInterp.v = 0; 
-        }
-
-        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
-        {
-            if (cld[2] == 23)     // Radius
-                if (cld[1] == 72) // Off
-                    nc.KorEcv.v = 40;
-                else              // On
-                    if (cld[10] == 24) nc.KorEcv.v = 42;
-                    else nc.KorEcv.v = 41;
-            else if (cld[2] == 9) // Length
-                    if (cld[1] == 71) { // On
-                        nc.DTool.v = Abs(cld[3]); nc.DTool.v0 = nc.DTool.v;//MaxReal
-                    //OutBlock
-                    }
         }
 
         public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
@@ -917,7 +922,43 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
+        public override void OnAxesBrake(ICLDAxesBrakeCommand cmd, CLDArray cld)
+        {
+            int ABrake = -1, BBrake = -1, CBrake = -1;
 
+            foreach(CLDAxisBrake axis in cmd.Axes){
+                if(axis.IsA)
+                    ABrake = axis.StateIsOn ? 1 : 0;
+                else if(axis.IsB)
+                    BBrake = axis.StateIsOn ? 1 : 0;
+                else if(axis.IsC)
+                    CBrake = axis.StateIsOn ? 1 : 0;
+            }
+
+            CheckAxesBrake(ABrake, BBrake, CBrake);
+        }
+
+        public override void OnDelay(ICLDDelayCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.GPause.v = 4; nc.GPause.v0 = double.MaxValue;
+            nc.FPause.v = cld[1]; nc.FPause.v0 = double.MaxValue;
+            nc.Block.Out();
+        }
+
+        public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.M.v = 1;nc.M.v0 = 0;  // M01
+            nc.Block.Out();
+        }
+
+        public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.M.v = 1;nc.M.v0 = 0;  // M01
+            nc.Block.Out();
+        }
 
         public override void StopOnCLData()
         {

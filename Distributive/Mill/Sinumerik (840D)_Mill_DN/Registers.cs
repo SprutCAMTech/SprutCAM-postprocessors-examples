@@ -20,6 +20,8 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord CoordSys = new NumericNCWord("G{######}", double.MaxValue);
         ///<summary>G54</summary>
         public TextNCWord G54 = new TextNCWord("G", "54", "");
+        ///<summary>G4</summary>
+        public NumericNCWord GPause = new NumericNCWord("G{#}", double.MaxValue);
         ///<summary>G94, G95</summary>
         public NumericNCWord GFeed = new NumericNCWord("G{######}", double.MaxValue);
         ///<summary>SUPA</summary>
@@ -64,6 +66,8 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord MCBreak = new NumericNCWord("M{####}", double.MaxValue);
         ///<summary>Feed value</summary>
         public NumericNCWord Feed = new NumericNCWord("F{######}", 10000);
+        ///<summary></summary>
+        public NumericNCWord FPause = new NumericNCWord("F{##}", double.MaxValue);
         ///<summary>Text field</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
         public NCFile() : base()
@@ -76,6 +80,7 @@ namespace SprutTechnology.SCPostprocessor
                   KorEcv,
                   CoordSys,
                   G54,
+                  GPause,
                   GFeed,
                   SUPA,
                   Tool,
@@ -98,6 +103,7 @@ namespace SprutTechnology.SCPostprocessor
                   MBBreak,
                   MCBreak,
                   Feed,
+                  FPause,
                   Text);
             OnInit();
         }

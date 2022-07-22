@@ -42,7 +42,11 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord S3 = new NumericNCWord("S3={#####}", 0);
 
         ///<summary>M03, M04, M05 - spindle switch on-off code</summary>
-        public NumericNCWord MSpindle = new NumericNCWord("M{00}", 5);
+        public NumericNCWord MSp = new NumericNCWord("M{00}", 5);
+
+        public NumericNCWord MSp2 = new NumericNCWord("M2={00}", 5);
+
+        public NumericNCWord MSp3 = new NumericNCWord("M3={00}", 5);
 
         ///<summary>G94, G95 - current feed mode: per minute or per rev</summary>
         public NumericNCWord GFeed = new NumericNCWord("G{##}", 17);
@@ -152,6 +156,8 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary> Drive tool </summary>
         public NumericNCWord SetMS = new NumericNCWord("SETMS({#})", 0);
 
+        public NumericNCWord Lims = new NumericNCWord("LIMS={00000}", 0);
+
         public NCFile(): base()
         {
             Block = new NCBlock(this, 
@@ -190,10 +196,14 @@ namespace SprutTechnology.SCPostprocessor
                 QStep,
                 QThreadAngle,
                 S,
+                S2,
+                S3,
                 T,
                 TCor,
                 M,
-                MSpindle,
+                MSp,
+                MSp2,
+                MSp3,
                 MCoolant,
                 MCBrake,
                 PSubCall,

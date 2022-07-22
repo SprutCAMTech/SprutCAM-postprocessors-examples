@@ -205,9 +205,9 @@ namespace SprutTechnology.SCPostprocessor
         {
             if (cld[1] == 71)
             {
-                if (currentOperationType == OpType.Mill)
+                if (currentOperationType is OpType.Mill)
                 {
-                    nc.GPlane.v = cld[14];
+                    nc.GPlane.v = cld[14]; 
                     nc.Block.Out();
 
                     if (activeLatheSpindle == 1)
@@ -223,14 +223,71 @@ namespace SprutTechnology.SCPostprocessor
                     nc.SetMS.v = 3; //Активация приводного инструмента 
                     nc.Block.Out();
 
-                    //check the spindle rotation mode (RPM or CSS).
+                    //check the spindle rotation mode (RPM or CSS) cld[4].
                     switch (cmd.SpeedMode)
                     {
                         case CLDSpindleSpeedMode.Unknown: 
                             nc.GCssRpm.v = 97;
+                            nc.S3.v = cmd.RPMValue; //Rotation rate
+                            nc.MSp3.v = cmd.RPMValue > 0 ? 3 : 4;
+                            nc.Block.Out();
                             break;
                         case CLDSpindleSpeedMode.CSS:
+                            Debug.WriteLine("Режим CSS во фрезерной обработке не реализован");
+                            break;
+                    }
+                }
 
+                else
+                {
+                    nc.GPlane.v = 18;
+                    nc.Block.Out();
+                    if (activeLatheSpindle == 1)
+                    {
+                        nc.SetMS.v = 1;
+                    }
+
+                    else if (activeLatheSpindle == 2)
+                    {
+                        nc.SetMS.v = 2;
+                    }
+                    nc.Block.Out();
+
+                    switch (cmd.SpeedMode)
+                    {
+                        case CLDSpindleSpeedMode.Unknown: 
+                            nc.GCssRpm.v = 97;
+                            if (activeLatheSpindle == 1)
+                            {
+                                nc.S.v = cmd.RPMValue;
+                                nc.MSp.v = cmd.RPMValue > 0 ? 4 : 3;
+                            }
+
+                            else
+                            {
+                                nc.S2.v = cmd.RPMValue;
+                                nc.MSp2.v = cmd.RPMValue > 0 ? 4 : 3;
+                            }
+
+                            nc.Block.Out();
+                            break;
+                        case CLDSpindleSpeedMode.CSS:
+                            nc.Lims.v = cmd.RPMValue;
+                            nc.Block.Out();
+
+                            nc.GCssRpm.v = 96;
+                            if (activeLatheSpindle == 1)
+                            {
+                                nc.S.v = cmd.CSSValue; //cld[5]
+                                nc.MSp.v = cmd.CSSValue > 0 ? 4 : 3;
+                            }
+
+                            else
+                            {
+                                nc.S2.v = cmd.CSSValue;
+                                nc.MSp2.v = cmd.CSSValue > 0 ? 4 : 3;
+                            }
+                            nc.Block.Out();
                             break;
                     }
                 }
@@ -238,13 +295,32 @@ namespace SprutTechnology.SCPostprocessor
 
             else if (cld[1] == 72)
             {
+                if(currentOperationType is OpType.Mill)
+                {
+                    nc.SetMS.v = 3;
+                    nc.Block.Out();
+                    nc.Block.Out();
+                }
 
+                else
+                {
+                    if (activeLatheSpindle == 1)
+                    {
+                        nc.SetMS.v = 1;
+                        nc.Block.Out();
+                        nc.MSp.v = 5;
+                    }
+                    else
+                    {
+                        nc.SetMS.v = 2;
+                        nc.Block.Out();
+                        nc.MSp2.v = 5;
+                    }
+                }
+                nc.Block.Out();
             }
 
-            else if (cld[1] == 246)
-            {
-
-            }
+            else if (cld[1] == 246) return; //Spindle Orient
         }
 
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)

@@ -76,6 +76,12 @@ namespace SprutTechnology.SCPostprocessor
         /// </summary>
         ProbingCycleState probingCycle;
 
+        ///<summary>Tool is a same as previous</summary>
+        bool SameTool = false;
+
+        ///<summary>Button clicked as the answer when cycle error appeared.</summary>
+        MsgClickedBtn cycleNonImplementedAnswer;
+
         #endregion
 
         public Postprocessor()
@@ -90,14 +96,27 @@ namespace SprutTechnology.SCPostprocessor
                 if (op.Tool==null || op.Tool.Command==null)
                     continue;
                 if (!tools.ContainsKey(op.Tool.Number))
-                    tools.Add(op.Tool.Number, op.Tool.Caption);
+                    tools.Add(op.Tool.Number, Transliterate(op.Tool.Caption));
             }            
             nc.WriteLine("( Tools list )");
-            NumericNCWord toolNum = new NumericNCWord("T{0000}", 0);
+            NumericNCWord toolNum = new NumericNCWord("T{00}", 0);
             for (int i=0; i<tools.Count; i++){
                 toolNum.v = Convert.ToInt32(tools.GetKey(i));
                 nc.WriteLine(String.Format("( {0}    {1} )", toolNum.ToString(), tools.GetByIndex(i)));
             }
+        }
+
+        void OutG53ABC()
+        {
+            var s = "";
+            if (CLDProject.Machine.HasAAxis)
+                s += nc.A.ToString();
+            if (CLDProject.Machine.HasBAxis)
+                s += nc.B.ToString();
+            if (CLDProject.Machine.HasCAxis)
+                s += nc.C.ToString();
+            if (!String.IsNullOrEmpty(s))
+                nc.OutWithN("G53", s);
         }
 
         public override void OnStartProject(ICLDProject prj)
@@ -130,11 +149,11 @@ namespace SprutTechnology.SCPostprocessor
             PrintAllTools();
             nc.WriteLine();
 
-            nc.Block.Show(nc.GAbsInc, nc.GMeasure, nc.GWCS, nc.GLCS, nc.GPlane, 
+            nc.Block.Show(nc.GAbsInc, nc.GFeed ,nc.GMeasure, nc.GWCS, nc.GLCS, nc.GPlane, 
                 nc.GLCompens, nc.GRCompens, nc.GInterp, nc.GCycle);
             nc.Block.Out();
             nc.OutWithN("G53", nc.Z.ToString(0));
-            nc.OutWithN("G53", nc.B.ToString(0), nc.C.ToString(0));
+            OutG53ABC();
         }
 
         public override void OnFinishProject(ICLDProject prj)
@@ -146,12 +165,14 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
             // One empty line between operations if the operation has a new tool 
-            if (op.Enabled)
+            SameTool = !op.Enabled;
+            if (!SameTool)
                 nc.WriteLine();
             nc.OutWithN("( " + Transliterate(op.CLDFile.Caption) + " )");
             if (op.Tool!=null && op.Tool.Command!=null) {
                 nc.OutWithN("G53", nc.Z.ToString(0));
-                nc.OutWithN("G53", nc.B.ToString(0), nc.C.ToString(0));
+                if(nc.A.Changed || nc.B.Changed || nc.C.Changed)                
+                    OutG53ABC();
                 nc.T.Show(op.Tool.Number);
                 nc.M.Show(6);
                 nc.TrailingComment.v = Transliterate(op.Tool.Caption);
@@ -159,12 +180,13 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Block.Out();
                 // var s = nc.Block.Form();
                 // nc.WriteLine(s + " ( " + op.Tool.Caption + " )");
-                nc.Block.Reset(nc.X, nc.Y, nc.Z, nc.A, nc.B, nc.C);
+                nc.Block.Reset(nc.X, nc.Y, nc.Z, nc.A, nc.B, nc.C, nc.F);
             }
             if (op.WorkpieceCSCommand!=null) {
                 nc.GWCS.v = op.WorkpieceCSCommand.CSNumber;
                 nc.Block.Out();
             }
+            nc.GInterp.Reset();
         }
 
         public override void OnCallNCSub(ICLDSub cldSub, ICLDPPFunCommand cmd, CLDArray cld)
@@ -222,7 +244,7 @@ namespace SprutTechnology.SCPostprocessor
         }
 
         public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
-        {
+        {  
             if (cmd.IsOn) {
                 // Stop if spindle reverse
                 if ((cmd.IsClockwiseDir && nc.MSpindle==4) || (!cmd.IsClockwiseDir && nc.MSpindle==3)) {
@@ -240,7 +262,10 @@ namespace SprutTechnology.SCPostprocessor
                     nc.MSpindle.Show(3);
                 else
                     nc.MSpindle.Show(4);
-                nc.Block.Out();
+                if( !SameTool || !nc.S.ValuesSame || !nc.MSpindle.ValuesSame) 
+                    nc.Block.Out();
+                else 
+                    nc.Block.Hide(nc.S, nc.MSpindle);
             } else if (cmd.IsOff) {
                 nc.MSpindle.v = 5;
                 nc.Block.Out();
@@ -271,7 +296,8 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Z.Show(cmd.WCS.P.Z);
                 nc.I.Show(cmd.WCS.N.A);
                 nc.J.Show(cmd.WCS.N.B);
-                nc.K.Show(cmd.WCS.N.C);
+                nc.K.Show(cmd.WCS.N.C);  
+                nc.Block.Hide(nc.GInterp);              
                 nc.Block.Out();
                 nc.Block.Reset(nc.X, nc.Y, nc.Z);
                 nc.OutWithN("G53.1");
@@ -334,6 +360,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.X.v = cmd.EP.X;
             nc.Y.v = cmd.EP.Y;
             nc.Z.v = cmd.EP.Z;
+
             if (!cycleIsOn) {
                 if (nc.Z.Changed && nc.GLCompens.ValuesDiffer) {
                     nc.Block.Hide(nc.X, nc.Y);
@@ -341,17 +368,18 @@ namespace SprutTechnology.SCPostprocessor
                     nc.Block.Out();
                     nc.Block.UpdateState(nc.X, nc.Y);
                 }            
-                if (nc.GLCompens == 43.4) {
-                    // TCPM
-                    nc.Block.Show(nc.X, nc.Y, nc.Z);
-                    if (CLDProject.Machine.HasAAxis)
-                        nc.A.Show();
-                    if (CLDProject.Machine.HasBAxis)
-                        nc.B.Show();
-                    if (CLDProject.Machine.HasCAxis)
-                        nc.C.Show();
-                }                
-                nc.Block.Out();
+                // Uncomment if you want mandatory XYZABC in TCPM mode
+                // if (nc.GLCompens == 43.4) {
+                //     nc.Block.Show(nc.X, nc.Y, nc.Z);
+                //     if (CLDProject.Machine.HasAAxis)
+                //         nc.A.Show();
+                //     if (CLDProject.Machine.HasBAxis)
+                //         nc.B.Show();
+                //     if (CLDProject.Machine.HasCAxis)
+                //         nc.C.Show();
+                // } 
+                if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed )               
+                    nc.Block.Out();
             }
             nc.LastP = cmd.EP;
         }
@@ -393,16 +421,16 @@ namespace SprutTechnology.SCPostprocessor
                         if (w!=nc.Z)
                             w.Show();
                 }            
-                if (nc.GLCompens == 43.4) {
-                    // TCPM
-                    nc.Block.Show(nc.X, nc.Y, nc.Z);
-                    if (CLDProject.Machine.HasAAxis)
-                        nc.A.Show();
-                    if (CLDProject.Machine.HasBAxis)
-                        nc.B.Show();
-                    if (CLDProject.Machine.HasCAxis)
-                        nc.C.Show();
-                }                
+                // Uncomment if you want mandatory XYZABC in TCPM mode
+                // if (nc.GLCompens == 43.4) {
+                //     nc.Block.Show(nc.X, nc.Y, nc.Z);
+                //     if (CLDProject.Machine.HasAAxis)
+                //         nc.A.Show();
+                //     if (CLDProject.Machine.HasBAxis)
+                //         nc.B.Show();
+                //     if (CLDProject.Machine.HasCAxis)
+                //         nc.C.Show();
+                // }                
                 nc.Block.Out();
             }
             nc.LastP = cmd.EP;
@@ -450,21 +478,43 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
         {
-            nc.GInterp.v = cmd.Dir;
+            nc.GInterp.Show(cmd.Dir);
             nc.X.v = cmd.EP.X;
             nc.Y.v = cmd.EP.Y;
             nc.Z.v = cmd.EP.Z;
-            nc.R.Show(cmd.RIso);
-            switch (Abs(cmd.Plane)) {
-                case 17:
-                    nc.Block.Show(nc.X, nc.Y);
+            if (IsEqD(cmd.Ang, 360, Zero) || (!IsZeroD(cmd.HelixAng, Zero))) {
+                // Center output
+                switch (Abs(cmd.Plane)) {
+                    case 17:
+                        nc.I.v = cmd.IncCenter.X;
+                        nc.J.v = cmd.IncCenter.Y;   
+                        nc.Block.Show(nc.X, nc.Y, nc.I, nc.J);  
                     break;
-                case 18:
-                    nc.Block.Show(nc.Z, nc.X);
+                    case 18:
+                        nc.I.v = cmd.IncCenter.X;    
+                        nc.K.v = cmd.IncCenter.Z;   
+                        nc.Block.Show(nc.X, nc.Z, nc.I, nc.K);   
                     break;
-                case 19:
-                    nc.Block.Show(nc.Y, nc.Z);
+                    case 19:  
+                        nc.J.v = cmd.IncCenter.Y;
+                        nc.K.v = cmd.IncCenter.Z;   
+                        nc.Block.Show(nc.Y, nc.Z, nc.J, nc.K);                        
                     break;
+                }
+            } else {
+                // Radius output                  
+                nc.R.Show(cmd.RIso);
+                switch (Abs(cmd.Plane)) {
+                    case 17:
+                        nc.Block.Show(nc.X, nc.Y);
+                        break;
+                    case 18:
+                        nc.Block.Show(nc.Z, nc.X);
+                        break;
+                    case 19:
+                        nc.Block.Show(nc.Y, nc.Z);
+                        break;
+                }
             }
             nc.Block.Out();
         }
@@ -497,10 +547,12 @@ namespace SprutTechnology.SCPostprocessor
         {
             if (cmd.IsOn) {
                 nc.GLCompens.v = 43.4;
+                nc.HLCompens.Show();
+                nc.Z.Show();
             } else {
                 nc.GLCompens.v = 49;
             }
-            nc.Block.Out();
+            // nc.Block.Out();
         }
 
         public override void OnHoleExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
@@ -542,23 +594,88 @@ namespace SprutTechnology.SCPostprocessor
                             nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F, nc.QStep);
                         nc.Block.Out();
                         break;
-                    case CLDConst.W5DTap:
+                    case CLDConst.W5DTap:                            // Thread tapping G84, G74
+                        if (nc.MSpindle == 4)            
+                            nc.GCycle.v = 74;                        // Left thread tapping G74           
+                        if (cld[19]==1 & nc.GCycle.Changed) 
+                            nc.OutWithN("M29", nc.S.ToString());     // fixed tap without compensating device
+                        if (cld[15]>0 & nc.GCycle.Changed) 
+                            nc.PDrillPause.Show(cld[15]*1000);                            
+                        else 
+                            nc.PDrillPause.Hide();
+                        if (cld[20]>0 & nc.GCycle.Changed)
+                            nc.QStep.Show(cld[21]);
+                        else 
+                            nc.QStep.Hide();
+                        nc.F.v = cld[17]*nc.S ;                        
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.GCycle, nc.PlaneZReg, nc.RSafeLevel, nc.F);
+                        nc.Block.Out();
                         break;
-                    case CLDConst.W5DBore5:
+                    case CLDConst.W5DBore5:                           // Hole boring G85
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F);
+                        nc.Block.Out();
                         break;
-                    case CLDConst.W5DBore6:
+                    case CLDConst.W5DBore6:                           // Finish boring G76 instead of G86
+                        nc.GCycle.v = 76;  
+                        if (cld[17]>0 & nc.GCycle.Changed) {
+                            nc.PDrillPause.Show(cld[17]*1000);
+                            nc.QStep.Show(Sqrt(Sqr(cld[19]) + Sqr(cld[20]) + Sqr(cld[21])));                           
+                        }else {
+                            nc.PDrillPause.Hide();
+                            nc.QStep.Hide();
+                        }
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F);
+                        nc.Block.Out();  
                         break;
-                    case CLDConst.W5DBore7:
+                    case CLDConst.W5DBore7:                           // Hole back boring G87
+                         if (cld[17]>0 & nc.GCycle.Changed) {
+                            nc.PDrillPause.Show(cld[17]*1000);
+                            nc.QStep.Show(Sqrt(Sqr(cld[19]) + Sqr(cld[20]) + Sqr(cld[21])));                           
+                         }else {
+                            nc.QStep.Hide();
+                            nc.PDrillPause.Hide();
+                        }
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F);
+                        nc.Block.Out();
                         break;
-                    case CLDConst.W5DBore8:
+                    case CLDConst.W5DBore8:                           // Hole boring G88
+                         nc.PDrillPause.v = cld[15]*1000;
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F, nc.PDrillPause);
+                        nc.Block.Out();
                         break;
-                    case CLDConst.W5DBore9:
+                    case CLDConst.W5DBore9:                           // Hole boring G89
+                        nc.PDrillPause.v = cld[15]*1000;
+                        if (nc.GCycle.Changed) 
+                            nc.Block.Show(nc.PlaneZReg, nc.RSafeLevel, nc.F, nc.PDrillPause);
+                        nc.Block.Out();
                         break;
-                    case CLDConst.W5DThreadMill:
-                        break;
-                    case CLDConst.W5DHolePocketing:
-                        break;
-                    case CLDConst.W5DGrooveBoring:
+                    // case CLDConst.W5DThreadMill:
+                    //     break;
+                    // case CLDConst.W5DHolePocketing:
+                    //     break;
+                    // case CLDConst.W5DGrooveBoring:
+                    //     break;
+                    default: 
+                        nc.WriteLine($"   ERROR: cycle {nc.GCycle} not implemented for the operation '{CurrentOperation.Comment}'");
+                        Log.Error($"Cycle {nc.GCycle} not implemented for the operation '{CurrentOperation.Comment}'");
+                        if (cycleNonImplementedAnswer != MsgClickedBtn.Ignore) {
+                            cycleNonImplementedAnswer = Log.MessageBox(
+                                $"The postprocessor does not implement {nc.GCycle} hole cycle.\r\n" +
+                                $"Try to use 'long hand' cycle format instead for the operation: '{CurrentOperation.Comment}'.\r\n" + 
+                                "Do you want to abort translation?",
+                                $"ERROR: cycle {nc.GCycle} not implemented!!!",
+                                MsgType.Error,
+                                MsgBtnSet.AbortRetryIgnore,
+                                MsgDefBtn.Button1
+                            );
+                            if (cycleNonImplementedAnswer==MsgClickedBtn.Abort)
+                                BreakTranslation();
+                        }
                         break;
                 }
             }

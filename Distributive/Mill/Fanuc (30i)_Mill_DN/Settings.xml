@@ -5,9 +5,9 @@
 <Settings Version="1.0">
     <Description>
         <Comments>SprutCAM postprocessor of standard delivery</Comments>
-        <CNCSystem>Fanuc 30i mill</CNCSystem>
+        <CNCSystem>Fanuc (30i) mill</CNCSystem>
         <MachineName></MachineName>
-        <Authors>cepera@sprut.ru</Authors>
+        <Authors></Authors>
     </Description>
     <Common>
         <!-- No, Cuts, Halfs, Quaters -->

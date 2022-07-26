@@ -9,7 +9,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>The block of the nc-file is an ordered list of nc-words</summary>
         public NCBlock Block;
         ///<summary>auto counting</summary>
-        public CountingNCWord BlockN = new CountingNCWord("N{###}0", 1, 1, 1);
+        public CountingNCWord BlockN = new CountingNCWord("N{####}", 10, 10, 1);
         ///<summary>G code 0,1,3</summary>
         public NumericNCWord GInterp = new NumericNCWord("G{######}", double.MaxValue);
         ///<summary>G code for plane</summary>

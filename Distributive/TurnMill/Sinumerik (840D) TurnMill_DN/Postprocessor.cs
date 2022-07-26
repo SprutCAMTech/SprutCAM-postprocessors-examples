@@ -17,6 +17,8 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Last point (X, Y, Z) was written to the nc-file</summary>
         public TInp3DPoint LastP {get; set;}
 
+        public double LastC = 99999;
+
         public override void OnInit()
         {
         //     this.TextEncoding = Encoding.GetEncoding("windows-1251");
@@ -55,6 +57,8 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Type of active lathe spindle (main, counter)</summary>
         int activeLatheSpindle;
+
+        double IsFirstC = 1;
  
         #endregion
 
@@ -99,6 +103,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine();
             
             currentOperationType = (OpType)(int)cld[60];
+            xScale = currentOperationType == OpType.Lathe ? 2 : 1;
         }  
 
         public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
@@ -166,21 +171,30 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
         {
-            if (cmd.IsOn) {
-                if (cmd.IsLeftDirection) nc.GRCompens.Show(41);
-                else nc.GRCompens.Show(42);
+            if (cmd.IsOn) 
+            {
+                if (cmd.IsLeftDirection) nc.GRCompens.v = 41;
+                else nc.GRCompens.v = 42;
             } 
-            else {
+
+            else 
+            {
                 nc.GRCompens.v = 40;
             }
+
+            nc.GRCompens.Disable();
         }
 
         //Задаются координаты исходной точки
         public override void OnFrom(ICLDFromCommand cmd, CLDArray cld)
         {
-            nc.X.v = currentOperationType is OpType.Lathe ? cld[1] * 2 : cld[1];
+            nc.X.v = currentOperationType == OpType.Lathe ? cld[1] * 2 : cld[1];
             nc.Y.v = cmd.EP.Y;
             nc.Z.v = cmd.EP.Z;
+
+            nc.X.Disable();
+            nc.Y.Disable();
+            nc.Z.Disable();
         }
 
         private void DetectSpindle(ICLDSelWorkpieceCommand cmd)
@@ -212,7 +226,7 @@ namespace SprutTechnology.SCPostprocessor
 
                     if (activeLatheSpindle == 1)
                     {
-                        //lastC = 0
+                        nc.LastC = 0;
                         nc.C.v = 0; //подключение оси  C
                     }
                     else
@@ -242,6 +256,7 @@ namespace SprutTechnology.SCPostprocessor
                 {
                     nc.GPlane.v = 18;
                     nc.Block.Out();
+
                     if (activeLatheSpindle == 1)
                     {
                         nc.SetMS.v = 1;
@@ -297,7 +312,7 @@ namespace SprutTechnology.SCPostprocessor
 
             else if (cld[1] == 72)
             {
-                if(currentOperationType is OpType.Mill)
+                if(currentOperationType == OpType.Mill)
                 {
                     nc.SetMS.v = 3;
                     nc.Block.Out();
@@ -327,7 +342,74 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
         {
-            base.OnRapid(cmd, cld);
+            if (nc.GInterp.v > 0){
+                nc.GInterp.v = 0;
+            } 
+            nc.GInterp.Show();  
+            //ThreadAngle
+        }
+
+        public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
+        {
+            if (nc.GInterp > 1)
+                nc.GInterp.v = 1;
+            foreach(CLDMultiMotionAxis ax in cmd.Axes) 
+            {
+                if (ax.ID == "AxisZ2Pos") {
+                    nc.Z2.v = ax.Value;
+                    if (nc.Z2.v0 != nc.Z2.v) nc.Block.Out();
+                }
+                else if (ax.IsX) {
+                    nc.X.v = ax.Value * xScale;
+                    nc.X.Show();
+                }
+                    
+                else if (ax.IsY) {
+                    nc.Y.v = ax.Value;
+                    if (currentOperationType == OpType.Lathe) nc.Y.v0 = nc.Y.v;
+                    nc.Y.Show();
+                }
+                else if (ax.IsZ) {
+                    nc.Z.v = ax.Value;
+                    nc.Z.Show();
+                }
+                if (currentOperationType != OpType.Lathe)
+                {
+                    if (ax.IsC)
+                    {
+                        if (IsFirstC == 1){
+                            nc.C.v = ax.Value;
+                            IsFirstC = 0;
+                        }
+
+                        else{
+                            nc.C.v = cmd.Flt["Axes(AxisCPos).Value"];
+                            if (Abs(nc.C.v - nc.LastC) < 180){
+                                nc.C.v = ax.Value;
+                                if(nc.C.v == nc.LastC) nc.C.v = nc.C.v0;
+                            }
+                            else{
+                                nc.C_.v = nc.C.v - nc.LastC;
+                                nc.C.v0 = nc.C.v;
+                            }
+                        }
+
+                        nc.LastC = cmd.Flt["Axes(AxisCPos).Value"];
+                    }
+
+                    else if(ax.IsC2) nc.C2.v = ax.Value;
+                }
+                
+                if (ax.ID == "JawDiameter"){
+                    nc.MChuck.v = ax.Value > 220 ? 25 : 26;
+                }
+
+                else if (ax.ID == "JawDiameter2"){
+                    nc.MChuck2.v = ax.Value > 220 ? 25 : 26;
+                }
+            }
+
+            nc.Block.Out();  
         }
 
         //(AbsMov in postprocessor generator)
@@ -371,33 +453,6 @@ namespace SprutTechnology.SCPostprocessor
             //     nc.Block.Out();
             // }
             // nc.LastP = cmd.EP;
-        }
-
-        //(RAPID)
-        public override void OnMoveVelocity(ICLDMoveVelocityCommand cmd, CLDArray cld)
-        {
-            if (cmd.IsRapid) {
-                nc.GInterp.v = 0;
-            } else {
-                if (nc.GInterp == 0)
-                    nc.GInterp.v = 1;
-                nc.F.v = cmd.FeedValue;
-            }
-        }
-
-        public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
-        {
-            if (nc.GInterp > 1)
-                nc.GInterp.v = 1;
-            foreach(CLDMultiMotionAxis ax in cmd.Axes) {
-                if (ax.IsX) 
-                    nc.X.v = ax.Value;
-                else if (ax.IsY) 
-                    nc.Y.v = ax.Value;
-                else if (ax.IsZ) 
-                    nc.Z.v = ax.Value;
-            }
-            nc.Block.Out();
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)

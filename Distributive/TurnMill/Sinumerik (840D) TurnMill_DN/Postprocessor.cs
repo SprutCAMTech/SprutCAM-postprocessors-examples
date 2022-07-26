@@ -437,22 +437,11 @@ namespace SprutTechnology.SCPostprocessor
             nc.Z.v = cmd.EP.Z;
             if(currentOperationType == OpType.Lathe )
             {
-                nc.X.v = cmd.EP.Y;
+                nc.Y.v0 = nc.Y.v;
             }
             
             nc.Block.Out();
             nc.LastP = cmd.EP;
-            // if (nc.GInterp.v==32) {
-            //     nc.Block.Show(nc.F, nc.GInterp);
-            // } else if (nc.GInterp > 1)
-            //     nc.GInterp.v = 1;
-            // nc.X.v = xScale*cmd.EP.X;
-            // nc.Y.v = cmd.EP.Y;
-            // nc.Z.v = cmd.EP.Z;
-            // if (!cycleIsOn) {
-            //     nc.Block.Out();
-            // }
-            // nc.LastP = cmd.EP;
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)

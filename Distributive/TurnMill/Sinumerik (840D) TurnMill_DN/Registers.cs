@@ -27,7 +27,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>G94, G95 - current feed mode: per minute or per rev</summary>
         public NumericNCWord GFeed = new NumericNCWord("G{##}", 17);
         ///<summary>G00, G01, G02, G03 - current mode of an interpolation</summary>
-        public NumericNCWord GInterp = new NumericNCWord("G{##}", 0);
+        public NumericNCWord GInterp = new NumericNCWord("G{##}", 99999);
         ///<summary>G12.1, G13.1, G07.1 - cylindrical or polar interpolation mode</summary>
         public NumericNCWord GPolarOrCyl = new NumericNCWord("G{##.#}", 0);
         ///<summary>G28 - return to home position, or G53 - physic axes motion</summary>
@@ -69,7 +69,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Pause duration in seconds</summary>
         public NumericNCWord XDelay = new NumericNCWord("X{-#####!###}", 0);
         ///<summary>Feedrate value of the movement</summary>
-        public NumericNCWord F = new NumericNCWord("F{#####}", 0);
+        public NumericNCWord F = new NumericNCWord("F{####!###}", 0);
         ///<summary>Pause onhole cycle bottom or top level (G82 and others)</summary>
         public NumericNCWord PDrillPause = new NumericNCWord("P{#####}", 0);
         ///<summary>Q - step for G73, G83 and others drill cycles</summary>
@@ -99,7 +99,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord MSp3 = new NumericNCWord("M3={##}", 0);
         ///<summary>M08, M09 - coolant switch on-off codes</summary>
-        public NumericNCWord MCoolant = new NumericNCWord("M{00}", 9);
+        public NumericNCWord MCoolant = new NumericNCWord("M{##}", 0);
         ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
         public NumericNCWord MCBrake = new NumericNCWord("M{###}", 596);
         ///<summary>P - subroutine number in call instruction M98 P####</summary>

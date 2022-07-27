@@ -59,7 +59,7 @@ namespace SprutTechnology.SCPostprocessor
         int activeLatheSpindle;
 
         double IsFirstC = 1;
- 
+
         #endregion
 
         void PrintAllTools(){
@@ -164,9 +164,10 @@ namespace SprutTechnology.SCPostprocessor
 
             //Переключение рабочих плоскостей (XY, XZ, YZ)
             var newGplane = ChangeGPlane(cld[14]);
-
             if (newGplane != 0) nc.GPlane.v = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
+
+            //nc.Block.Show(nc.F, nc.GInterp, nc.S, nc.S2, nc.S3);
         }
 
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
@@ -182,7 +183,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.GRCompens.v = 40;
             }
 
-            nc.GRCompens.Disable();
+            nc.GRCompens.Hide();
         }
 
         //Задаются координаты исходной точки
@@ -192,9 +193,9 @@ namespace SprutTechnology.SCPostprocessor
             nc.Y.v = cmd.EP.Y;
             nc.Z.v = cmd.EP.Z;
 
-            nc.X.Disable();
-            nc.Y.Disable();
-            nc.Z.Disable();
+            nc.X.Hide();
+            nc.Y.Hide();
+            nc.Z.Hide();
         }
 
         private void DetectSpindle(ICLDSelWorkpieceCommand cmd)
@@ -345,14 +346,16 @@ namespace SprutTechnology.SCPostprocessor
             if (nc.GInterp.v > 0){
                 nc.GInterp.v = 0;
             } 
-            nc.GInterp.Show();  
             //ThreadAngle
         }
 
         public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
         {
-            if (nc.GInterp > 1)
+            if (nc.GInterp.v > 1){
                 nc.GInterp.v = 1;
+                nc.GInterp.v0 = nc.GInterp.v;
+            }
+                
             foreach(CLDMultiMotionAxis ax in cmd.Axes) 
             {
                 if (ax.ID == "AxisZ2Pos") {
@@ -361,17 +364,14 @@ namespace SprutTechnology.SCPostprocessor
                 }
                 else if (ax.IsX) {
                     nc.X.v = ax.Value * xScale;
-                    nc.X.Show();
                 }
                     
                 else if (ax.IsY) {
                     nc.Y.v = ax.Value;
                     if (currentOperationType == OpType.Lathe) nc.Y.v0 = nc.Y.v;
-                    nc.Y.Show();
                 }
                 else if (ax.IsZ) {
                     nc.Z.v = ax.Value;
-                    nc.Z.Show();
                 }
                 if (currentOperationType != OpType.Lathe)
                 {
@@ -412,7 +412,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();  
         }
 
-        //(AbsMov in postprocessor generator)
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
             //я не шарю, углы в радианах или в градусах в cld
@@ -420,7 +419,7 @@ namespace SprutTechnology.SCPostprocessor
             Func<double,double> secant = (d => (1 / Math.Cos(d)));
 
             if (nc.GInterp.v > 1 && nc.GInterp.v < 4) nc.GInterp.v = 1;
-            if (nc.GInterp.v == 33) nc.Block.Show(nc.F, nc.GInterp);
+            if (nc.GInterp.v == 33) nc.Block.Show(nc.GInterp);
             if (nc.GPolarOrCyl.v == 1)
             {
                 nc.X.v = cmd.EP.X * cosecant(nc.RotC.v) - cmd.EP.Y * secant(nc.RotC.v);
@@ -442,6 +441,28 @@ namespace SprutTechnology.SCPostprocessor
             
             nc.Block.Out();
             nc.LastP = cmd.EP;
+        }
+
+        public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
+        {
+            nc.MCoolant.v = cmd.IsOn ? 8 : 9;
+        }
+
+        public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
+        {
+            nc.F.v = cmd.FeedValue;
+
+            if (nc.F.v < 10000)
+            {
+                nc.GFeed.v = cld[3] == 315 ? 94 : 95;
+                nc.GInterp.v = 1;
+            }
+            else
+            {
+                nc.GInterp.v = 0;
+                nc.F.v0 = nc.F.v;
+                //ThreadStartAngel
+            }
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)

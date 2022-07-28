@@ -170,6 +170,13 @@ namespace SprutTechnology.SCPostprocessor
             //nc.Block.Show(nc.F, nc.GInterp, nc.S, nc.S2, nc.S3);
         }
 
+        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
+        {
+            var newGplane = ChangeGPlane(cld[14]);
+            if (newGplane != 0) nc.GPlane.v = newGplane;
+            else Debug.WriteLine("Wrong given a plane of processing");
+        }
+
         public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
         {
             if (cmd.IsOn) 
@@ -222,7 +229,7 @@ namespace SprutTechnology.SCPostprocessor
             {
                 if (currentOperationType is OpType.Mill)
                 {
-                    nc.GPlane.v = cld[14]; 
+                    nc.GPlane.v = (double)cld[14]; 
                     nc.Block.Out();
 
                     if (activeLatheSpindle == 1)
@@ -243,8 +250,11 @@ namespace SprutTechnology.SCPostprocessor
                     {
                         case CLDSpindleSpeedMode.Unknown: 
                             nc.GCssRpm.v = 97;
+                            nc.GCssRpm.Show();
                             nc.S3.v = cmd.RPMValue; //Rotation rate
                             nc.MSp3.v = cmd.RPMValue > 0 ? 3 : 4;
+
+                            nc.MSp3.Show();
                             nc.Block.Out();
                             break;
                         case CLDSpindleSpeedMode.CSS:
@@ -273,22 +283,29 @@ namespace SprutTechnology.SCPostprocessor
                     {
                         case CLDSpindleSpeedMode.Unknown: 
                             nc.GCssRpm.v = 97;
+                            nc.GCssRpm.Show();
+                            
                             if (activeLatheSpindle == 1)
                             {
                                 nc.S.v = cmd.RPMValue;
                                 nc.MSp.v = cmd.RPMValue > 0 ? 4 : 3;
+
+                                nc.Block.Show(nc.S, nc.MSp);
                             }
 
                             else
                             {
                                 nc.S2.v = cmd.RPMValue;
                                 nc.MSp2.v = cmd.RPMValue > 0 ? 4 : 3;
+                                
+                                nc.Block.Show(nc.S2, nc.MSp2);
                             }
 
                             nc.Block.Out();
                             break;
                         case CLDSpindleSpeedMode.CSS:
                             nc.Lims.v = cmd.RPMValue;
+                            nc.Lims.Show();
                             nc.Block.Out();
 
                             nc.GCssRpm.v = 96; //G96 - by default => needs to change the state
@@ -298,12 +315,16 @@ namespace SprutTechnology.SCPostprocessor
                             {
                                 nc.S.v = cmd.CSSValue; //cld[5]
                                 nc.MSp.v = cmd.CSSValue > 0 ? 4 : 3;
+
+                                nc.Block.Show(nc.S, nc.MSp);
                             }
 
                             else
                             {
                                 nc.S2.v = cmd.CSSValue;
                                 nc.MSp2.v = cmd.CSSValue > 0 ? 4 : 3;
+
+                                nc.Block.Show(nc.S2, nc.MSp2);
                             }
                             nc.Block.Out();
                             break;
@@ -317,7 +338,6 @@ namespace SprutTechnology.SCPostprocessor
                 {
                     nc.SetMS.v = 3;
                     nc.Block.Out();
-                    nc.Block.Out();
                 }
 
                 else
@@ -327,6 +347,7 @@ namespace SprutTechnology.SCPostprocessor
                         nc.SetMS.v = 1;
                         nc.Block.Out();
                         nc.MSp.v = 5;
+                        nc.MSp.Show();
                     }
                     else
                     {

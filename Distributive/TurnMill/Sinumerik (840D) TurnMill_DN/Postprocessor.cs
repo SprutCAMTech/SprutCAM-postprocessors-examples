@@ -60,6 +60,14 @@ namespace SprutTechnology.SCPostprocessor
 
         double IsFirstC = 1;
 
+        double Plane_;
+
+        ///<summary>From point (X, Y, Z)</summary>
+        public TInp3DPoint FromP_ {get; set;}
+
+        ///<summary>To point (X, Y, Z)</summary>
+        public TInp3DPoint PT_ {get; set;}
+
         #endregion
 
         void PrintAllTools(){
@@ -142,7 +150,7 @@ namespace SprutTechnology.SCPostprocessor
         }
         
         // GPlane, Переключение рабочих плоскостей (XY, XZ, YZ)
-        private int ChangeGPlane(double cld14) => cld14 switch
+        private double ChangeGPlane(double cld14) => cld14 switch
         {
             33 => 17,
             41 => 18,
@@ -163,8 +171,8 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
 
             //Переключение рабочих плоскостей (XY, XZ, YZ)
-            var newGplane = ChangeGPlane(cld[14]);
-            if (newGplane != 0) nc.GPlane.v = newGplane;
+            var newGplane = ChangeGPlane((double)cmd.Plane);
+            if (newGplane != 0) Plane_ = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
 
             //nc.Block.Show(nc.F, nc.GInterp, nc.S, nc.S2, nc.S3);
@@ -172,7 +180,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
         {
-            var newGplane = ChangeGPlane(cld[14]);
+            var newGplane = ChangeGPlane((double)cld[14]);
             if (newGplane != 0) nc.GPlane.v = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
         }
@@ -203,6 +211,11 @@ namespace SprutTechnology.SCPostprocessor
             nc.X.Hide();
             nc.Y.Hide();
             nc.Z.Hide();
+
+            //FROMX_ = X
+            //XT_ = X
+            FromP_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
+            PT_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
         }
 
         private void DetectSpindle(ICLDSelWorkpieceCommand cmd)
@@ -229,7 +242,8 @@ namespace SprutTechnology.SCPostprocessor
             {
                 if (currentOperationType is OpType.Mill)
                 {
-                    nc.GPlane.v = (double)cld[14]; 
+                    nc.GPlane.v = Plane_; 
+                    if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0)) nc.GPlane.v0 = nc.GPlane.v;
                     nc.Block.Out();
 
                     if (activeLatheSpindle == 1)
@@ -435,21 +449,19 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
-            //я не шарю, углы в радианах или в градусах в cld
-            Func<double,double> cosecant = (c => (1 / Math.Sin(c)));
-            Func<double,double> secant = (d => (1 / Math.Cos(d)));
+            // Func<double,double> cosecant = (c => (1 / Math.Sin(c)));
+            // Func<double,double> secant = (d => (1 / Math.Cos(d)));
 
             if (nc.GInterp.v > 1 && nc.GInterp.v < 4) nc.GInterp.v = 1;
             if (nc.GInterp.v == 33) nc.Block.Show(nc.GInterp);
             if (nc.GPolarOrCyl.v == 1)
             {
-                nc.X.v = cmd.EP.X * cosecant(nc.RotC.v) - cmd.EP.Y * secant(nc.RotC.v);
-                nc.Y.v = cmd.EP.Y * cosecant(nc.RotC.v) + cmd.EP.X * secant(nc.RotC.v);
+                nc.X.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
+                nc.Y.v = cmd.EP.Y * Cos(nc.RotC.v) + cmd.EP.X * Sin(nc.RotC.v);
             }
 
             else
             {
-                xScale = 2;
                 nc.X.v = cmd.EP.X * xScale; //xScale = 2
                 nc.Y.v = cmd.EP.Y;
             }
@@ -488,12 +500,87 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
         {
-            nc.GInterp.v = cmd.Dir;
-            nc.X.v = cmd.EP.X;
-            nc.Y.v = cmd.EP.Y;
+            nc.GInterp.v = cmd.R * Sgn(nc.GPlane.v) > 0 ? 3 : 2;
+
+            if (nc.GPolarOrCyl.v == 1)
+            {
+                nc.X.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
+                nc.Y.v = cmd.EP.Y * Cos(nc.RotC.v) + cmd.EP.X * Sin(nc.RotC.v);
+            }
+
+            else
+            {
+                nc.X.v = cmd.EP.X * xScale; //xScale = 2
+                nc.Y.v = cmd.EP.Y;
+            }
+
+            nc.X.Show();
+            nc.Y.Show();
             nc.Z.v = cmd.EP.Z;
-            nc.R.Show(cmd.RIso);
+            nc.Z.Show();
+
+            if (currentOperationType == OpType.Lathe) nc.Y.v0 = nc.Y.v; //don't output in lathe 
+
+            if (Abs(nc.GPlane.v) == 17 && nc.LastP.Z == nc.Z.v) nc.Z.v0 = nc.Z.v;
+            else if (Abs(nc.GPlane.v) == 17 && nc.LastP.Y == nc.Y.v) nc.Y.v0 = nc.Y.v;
+            else if (Abs(nc.GPlane.v) == 17 && nc.LastP.X == nc.X.v) nc.X.v0 = nc.X.v;
+
+            //Если спираль, то выводим Turn (количество оборотов) явно
+            if(Abs(nc.GPlane.v) == 17 && PT_.Z != nc.Z.v)
+            {
+                nc.Turn.v = 0;
+                nc.Turn.Show();
+
+                if(PT_.X == nc.X.v && PT_.Y == nc.Y.v){
+                    nc.Turn.v = 1;
+                }
+            }
+
+            else if (Abs(nc.GPlane.v) == 18 && PT_.Y != nc.Y.v)
+            {
+                nc.Turn.v = 0;
+                nc.Turn.Show();
+
+                if(PT_.X == nc.X.v && PT_.Z == nc.Z.v){
+                    nc.Turn.v = 1;
+                }
+            }
+            
+            else if (Abs(nc.GPlane.v) == 19 && PT_.X != nc.X.v)
+            {
+                nc.Turn.v = 0;
+                nc.Turn.Show();
+
+                if(PT_.Y == nc.Y.v && PT_.Z == nc.Z.v){
+                    nc.Turn.v = 1;
+                }
+            }
+
+            if(Abs(nc.GPlane.v) != 19){
+                if(nc.GPolarOrCyl.v == 1){
+                    nc.XC_.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
+                }
+                else nc.XC_.v = cmd.EP.X * xScale;
+                nc.XC_.Show();
+            }
+
+            if(Abs(nc.GPlane.v) != 18){
+                if(nc.GPolarOrCyl.v == 1){
+                    nc.YC_.v = cmd.EP.Y * Cos(nc.RotC.v) - cmd.EP.X * Sin(nc.RotC.v);
+                }
+                else nc.YC_.v = cmd.EP.Y;
+                nc.YC_.Show();
+            }
+
+            if(Abs(nc.GPlane.v) != 17){
+                nc.ZC_.v = cmd.EP.Z;
+                nc.ZC_.Show();
+            }
+
             nc.Block.Out();
+
+            //current coordinates
+            PT_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
         }
 
         public override void OnFilterString(ref string s, TNCFile ncFile, INCLabel label)

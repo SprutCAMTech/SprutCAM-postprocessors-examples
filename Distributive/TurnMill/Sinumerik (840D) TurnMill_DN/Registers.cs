@@ -86,6 +86,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord T = new NumericNCWord("T{##}", 0);
         ///<summary>Tool number (second two numbers)</summary>
         public NumericNCWord TCor = new NumericNCWord("{00}", 0);
+        public NumericNCWord Turn = new NumericNCWord("TURN={##}", 0);
         ///<summary>M00, M01, M02, M30 - auxiliary M codes</summary>
         public NumericNCWord M = new NumericNCWord("M{##}", 0);
         ///<summary>M25, M026 - auxiliary M codes</summary>
@@ -114,10 +115,11 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord C2 = new NumericNCWord("SPOS[2]={#####!###}", 0);
         ///<summary>Drive tool</summary>
         public NumericNCWord SetMS = new NumericNCWord("SETMS({#})", 0);
-        ///<summary></summary>
         public NumericNCWord Lims = new NumericNCWord("LIMS={#####}", 0);
-        ///<summary></summary>
-        public NumericNCWord Z2 = new NumericNCWord("Z2= {-#####.###}", 0);
+        public NumericNCWord Z2 = new NumericNCWord("Z2={-#####.###}", 0);
+        public NumericNCWord XC_ = new NumericNCWord("I=AC({#####!###})", 0);
+        public NumericNCWord YC_ = new NumericNCWord("J=({#####!###})", 0);
+        public NumericNCWord ZC_ = new NumericNCWord("K=({#####!###})", 0);
         public NCFile(): base()
         {
             Block = new NCBlock(
@@ -160,7 +162,8 @@ namespace SprutTechnology.SCPostprocessor
                   S2, 
                   S3, 
                   T, 
-                  TCor, 
+                  TCor,
+                  Turn, 
                   M, 
                   MChuck, 
                   MChuck2, 
@@ -176,7 +179,10 @@ namespace SprutTechnology.SCPostprocessor
                   C2, 
                   SetMS, 
                   Lims, 
-                  Z2);
+                  Z2,
+                  XC_,
+                  YC_,
+                  ZC_);
             OnInit();
         }
     }

@@ -127,6 +127,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord XC_ = new NumericNCWord("I=AC({#####!###})", 0);
         public NumericNCWord YC_ = new NumericNCWord("J=({#####!###})", 0);
         public NumericNCWord ZC_ = new NumericNCWord("K=({#####!###})", 0);
+        public NumericNCWord ThreadStartAngle = new NumericNCWord("SF={-###!###}", 0);
         public NCFile(): base()
         {
             Block = new NCBlock(
@@ -193,7 +194,8 @@ namespace SprutTechnology.SCPostprocessor
                   Z2,
                   XC_,
                   YC_,
-                  ZC_);
+                  ZC_,
+                  ThreadStartAngle);
             OnInit();
         }
     }

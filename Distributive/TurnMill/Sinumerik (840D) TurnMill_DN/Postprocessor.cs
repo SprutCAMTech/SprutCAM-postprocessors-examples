@@ -235,8 +235,8 @@ namespace SprutTechnology.SCPostprocessor
         //выбор активной державки заготовки          
         public override void OnSelWorkpiece(ICLDSelWorkpieceCommand cmd, CLDArray cld)
         {
-            DetectSpindle(cmd);
-            currentOperationType = OpType.Lathe;
+            DetectSpindle(cmd); //spindle type definition (main, counter)
+            currentOperationType = OpType.Lathe; //switching operation type to lathe for correct output
         }
 
         public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
@@ -384,7 +384,7 @@ namespace SprutTechnology.SCPostprocessor
             if (nc.GInterp.v > 0){
                 nc.GInterp.v = 0;
             } 
-            //ThreadAngle
+            nc.ThreadStartAngle.Hide();
         }
 
         public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
@@ -494,8 +494,8 @@ namespace SprutTechnology.SCPostprocessor
             {
                 nc.GInterp.v = 0;
                 nc.F.v0 = nc.F.v;
-                //ThreadStartAngel
             }
+            nc.ThreadStartAngle.Hide();
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
@@ -516,8 +516,7 @@ namespace SprutTechnology.SCPostprocessor
 
             nc.X.Show();
             nc.Y.Show();
-            nc.Z.v = cmd.EP.Z;
-            nc.Z.Show();
+            nc.Z.Show(cmd.EP.Z);
 
             if (currentOperationType == OpType.Lathe) nc.Y.v0 = nc.Y.v; //don't output in lathe 
 
@@ -528,8 +527,7 @@ namespace SprutTechnology.SCPostprocessor
             //Если спираль, то выводим Turn (количество оборотов) явно
             if(Abs(nc.GPlane.v) == 17 && PT_.Z != nc.Z.v)
             {
-                nc.Turn.v = 0;
-                nc.Turn.Show();
+                nc.Turn.Show(0);
 
                 if(PT_.X == nc.X.v && PT_.Y == nc.Y.v){
                     nc.Turn.v = 1;
@@ -538,8 +536,7 @@ namespace SprutTechnology.SCPostprocessor
 
             else if (Abs(nc.GPlane.v) == 18 && PT_.Y != nc.Y.v)
             {
-                nc.Turn.v = 0;
-                nc.Turn.Show();
+                nc.Turn.Show(0);
 
                 if(PT_.X == nc.X.v && PT_.Z == nc.Z.v){
                     nc.Turn.v = 1;
@@ -549,7 +546,7 @@ namespace SprutTechnology.SCPostprocessor
             else if (Abs(nc.GPlane.v) == 19 && PT_.X != nc.X.v)
             {
                 nc.Turn.v = 0;
-                nc.Turn.Show();
+                nc.Turn.Show(0);
 
                 if(PT_.Y == nc.Y.v && PT_.Z == nc.Z.v){
                     nc.Turn.v = 1;
@@ -573,8 +570,7 @@ namespace SprutTechnology.SCPostprocessor
             }
 
             if(Abs(nc.GPlane.v) != 17){
-                nc.ZC_.v = cmd.EP.Z;
-                nc.ZC_.Show();
+                nc.ZC_.Show(cmd.EP.Z);
             }
 
             nc.Block.Out();
@@ -629,11 +625,78 @@ namespace SprutTechnology.SCPostprocessor
 
             nc.GPause.v = 4;
             nc.FPause.v = cmd.TimeSpan;
+
             nc.Block.Show(nc.GPause, nc.FPause);
 
             nc.Block.Out();
         }
-        
+
+        public override void OnFini(ICLDFiniCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.M.Show(30);
+            nc.Block.Out();
+
+            //NCSub.Output ! Выводим все неоттранслированные ранее подпрограммы
+            
+        }
+
+        public override void OnGoHome(ICLDGoHomeCommand cmd, CLDArray cld)
+        {
+            if(cycleIsOn)
+            {
+                cycleIsOn = false;
+                //Cycle = 80
+            }
+
+            nc.GInterp.v = 0;
+            nc.X.v = FromP_.X;
+            nc.Y.v = FromP_.Y;
+            nc.Z.v = FromP_.Z;
+
+            if(currentOperationType == OpType.Lathe) nc.Y.Hide();
+            nc.Block.Out();
+        }
+
+        public override void OnInterpolation(ICLDInterpolationCommand cmd, CLDArray cld)
+        {
+            base.OnInterpolation(cmd, cld);//904
+        }
+
+        public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.M.v = 1;
+            nc.M.v0 = 0;
+            nc.Block.Out();
+        }
+
+        public override void OnPartNo(ICLDPartNoCommand cmd, CLDArray cld)
+        {
+            base.OnPartNo(cmd, cld);
+        }
+
+        public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
+        {
+            base.OnPPFun(cmd, cld);
+        }
+
+        public override void OnSinglePassThread(ICLDSinglePassThreadCommand cmd, CLDArray cld)
+        {
+            nc.GInterp.Show(33);
+            nc.F.Show(cmd.ValueAsDouble);
+            nc.ThreadStartAngle.v = cmd.StartAngle; //Spindle orientation for multiple threads
+            if(cmd.StartAngle == 0) nc.ThreadStartAngle.v0 = nc.ThreadStartAngle.v;
+        }
+
+        public override void OnStop(ICLDStopCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            nc.M.v = 0;
+            nc.M.v0 = 1;
+            nc.Block.Out();
+        }
+
         public override void OnFilterString(ref string s, TNCFile ncFile, INCLabel label)
         {
 

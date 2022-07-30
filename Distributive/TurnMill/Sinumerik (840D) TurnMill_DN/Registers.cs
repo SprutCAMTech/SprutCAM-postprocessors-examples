@@ -36,6 +36,8 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord GCycle = new NumericNCWord("G{##}", 80);
         ///<summary>G40, G41, G42 - radius compensation mode: off, left, right</summary>
         public NumericNCWord GRCompens = new NumericNCWord("G{##}", 40);
+        ///<summary>G4</summary>
+        public NumericNCWord GPause = new NumericNCWord("G{##}", 0);
         ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####!###}", 0);
         ///<summary>Y coordinate of the movement</summary>
@@ -70,6 +72,7 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord XDelay = new NumericNCWord("X{-#####!###}", 0);
         ///<summary>Feedrate value of the movement</summary>
         public NumericNCWord F = new NumericNCWord("F{####!###}", 0);
+        public NumericNCWord FPause = new NumericNCWord("F{####!###}", 0);
         ///<summary>Pause onhole cycle bottom or top level (G82 and others)</summary>
         public NumericNCWord PDrillPause = new NumericNCWord("P{#####}", 0);
         ///<summary>Q - step for G73, G83 and others drill cycles</summary>
@@ -101,6 +104,10 @@ namespace SprutTechnology.SCPostprocessor
         public NumericNCWord MSp3 = new NumericNCWord("M3={##}", 0);
         ///<summary>M08, M09 - coolant switch on-off codes</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{##}", 0);
+        ///<summary>M10, M11 - axis C brake switch on-off codes</summary>
+        public NumericNCWord MTorm = new NumericNCWord("M{##}", 0);
+        ///<summary>M10, M11 - axis C2 brake switch on-off codes</summary>
+        public NumericNCWord MTorm2 = new NumericNCWord("M2={##}", 0);
         ///<summary>M597, M596 - C axis brake switch on-off codes</summary>
         public NumericNCWord MCBrake = new NumericNCWord("M{###}", 596);
         ///<summary>P - subroutine number in call instruction M98 P####</summary>
@@ -137,7 +144,8 @@ namespace SprutTechnology.SCPostprocessor
                   GPolarOrCyl, 
                   GHome, 
                   GCycle, 
-                  GRCompens, 
+                  GRCompens,
+                  GPause, 
                   X, 
                   Y, 
                   Z, 
@@ -155,6 +163,7 @@ namespace SprutTechnology.SCPostprocessor
                   K, 
                   XDelay, 
                   F, 
+                  FPause,
                   PDrillPause, 
                   QStep, 
                   QThreadAngle, 
@@ -170,7 +179,9 @@ namespace SprutTechnology.SCPostprocessor
                   MSp, 
                   MSp2, 
                   MSp3, 
-                  MCoolant, 
+                  MCoolant,
+                  MTorm,
+                  MTorm2, 
                   MCBrake, 
                   PSubCall, 
                   TrailingComment, 

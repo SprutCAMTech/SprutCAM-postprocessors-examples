@@ -60,12 +60,13 @@ namespace SprutTechnology.SCPostprocessor
 
         double IsFirstC = 1;
 
+        ///<summary>Variable of active plane from LOADTL</summary>
         double Plane_;
 
-        ///<summary>From point (X, Y, Z)</summary>
+        
         public TInp3DPoint FromP_ {get; set;}
 
-        ///<summary>To point (X, Y, Z)</summary>
+        ///<summary>Current point (X, Y, Z)</summary>
         public TInp3DPoint PT_ {get; set;}
 
         #endregion
@@ -129,13 +130,15 @@ namespace SprutTechnology.SCPostprocessor
 
                 if(Abs(cmd.EN.A) > 0.0001 | Abs(cmd.EN.B) > 0.0001 | Abs(cmd.EN.C) > 0.0001)
                 {
-                    nc.RotA.v = cmd.EN.A;
-                    nc.RotB.v = cmd.EN.B;
-                    nc.RotC.v = cmd.EN.C;
+                    nc.RotA.v = cmd.EN.A; nc.RotA.v0 = 0;
+                    nc.RotB.v = cmd.EN.B; nc.RotB.v0 = 0;
+                    nc.RotC.v = cmd.EN.C; nc.RotC.v0 = 0;
+                    nc.Block.Form();
                 }
-                nc.X.v = cmd.EP.X;
-                nc.Y.v = cmd.EP.Y;
-                nc.Z.v = cmd.EP.Z;
+                nc.X.v = cmd.EP.X; nc.X.v0 = 0;
+                nc.Y.v = cmd.EP.Y; nc.Y.v0 = 0; 
+                nc.Z.v = cmd.EP.Z; nc.Z.v0 = 0;
+                nc.Block.Form();
             }
             else Debug.Write("Unknown coordinate system");
         }
@@ -180,8 +183,8 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
         {
-            var newGplane = ChangeGPlane((double)cld[14]);
-            if (newGplane != 0) nc.GPlane.v = newGplane;
+            var newGplane = ChangeGPlane((double)cmd.Plane);
+            if (newGplane != 0) Plane_ = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
         }
 
@@ -449,9 +452,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
-            // Func<double,double> cosecant = (c => (1 / Math.Sin(c)));
-            // Func<double,double> secant = (d => (1 / Math.Cos(d)));
-
             if (nc.GInterp.v > 1 && nc.GInterp.v < 4) nc.GInterp.v = 1;
             if (nc.GInterp.v == 33) nc.Block.Show(nc.GInterp);
             if (nc.GPolarOrCyl.v == 1)
@@ -583,6 +583,57 @@ namespace SprutTechnology.SCPostprocessor
             PT_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
         }
 
+        public override void OnAxesBrake(ICLDAxesBrakeCommand cmd, CLDArray cld)
+        {
+            foreach(CLDAxisBrake ax in cmd.Axes) 
+            {
+                if (ax.IsC) 
+                {
+                    if (ax.StateIsOn)
+                    {
+                        if(nc.MTorm.v != 10) //&& nc.C.v == MaxReal 
+                        {
+                            nc.C.v = 0;
+                            nc.Block.Out();
+                        }
+
+                        nc.MTorm.v = 10;
+                    }
+                        
+                    else nc.MTorm.v = 11;
+                }
+
+                else if (ax.IsC2) 
+                {
+                    if (ax.StateIsOn)
+                    {
+                        if(nc.MTorm2.v != 10) //&& nc.C.v == MaxReal 
+                        {
+                            nc.C2.v = 0;
+                            nc.Block.Out();
+                        }
+
+                        nc.MTorm2.v = 10;
+                    }
+                        
+                    else nc.MTorm2.v = 11;
+                }
+            }
+
+            nc.Block.Out();
+        }
+
+        public override void OnDelay(ICLDDelayCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+
+            nc.GPause.v = 4;
+            nc.FPause.v = cmd.TimeSpan;
+            nc.Block.Show(nc.GPause, nc.FPause);
+
+            nc.Block.Out();
+        }
+        
         public override void OnFilterString(ref string s, TNCFile ncFile, INCLabel label)
         {
 

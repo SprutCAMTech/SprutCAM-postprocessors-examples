@@ -57,7 +57,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Spindle on-off: M3, M4, M5</summary>
         public NumericNCWord Msp = new NumericNCWord("M{#}", 0);
         ///<summary>Coolant for M8, M9</summary>
-        public NumericNCWord MCoolant = new NumericNCWord("M{#}", double.MaxValue);
+        public NumericNCWord MCoolant = new NumericNCWord("M{#}", 9);
         ///<summary>Axes A break</summary>
         public NumericNCWord MABreak = new NumericNCWord("M{####}", double.MaxValue);
         ///<summary>Axes B break</summary>

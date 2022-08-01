@@ -14,9 +14,6 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Main nc-programm number</summary>
         public int ProgNumber {get; set;}
 
-        ///<summary>Last point (X, Y, Z) was written to the nc-file</summary>
-        public TInp3DPoint LastP {get; set;}
-
         public double LastC = 99999;
 
         public override void OnInit()
@@ -46,8 +43,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Current nc-file. It could be main or sub.</summary>
         public NCFile nc;
 
-        ///<summary>G81-G89 cycle is on</summary>
-        bool cycleIsOn = false;
+        private CycleSinumerik840D cycle;
 
         ///<summary>X axis scale coefficient (1 - radial, 2 - diametral)</summary>
         double xScale = 1.0;
@@ -62,16 +58,20 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Variable of active plane from LOADTL</summary>
         double Plane_;
-
         
         public TInp3DPoint FromP_ {get; set;}
 
-        ///<summary>Current point (X, Y, Z)</summary>
+        ///<summary>Current point (X, Y, Z coordinates)</summary>
         public TInp3DPoint PT_ {get; set;}
+        
+        ///<summary>Polar interpolation (setted in the INTERPOLATION command)
+        /// 1 - on; 0 - off</summary>
+        public int PolarInterp;
 
         #endregion
 
-        void PrintAllTools(){
+        void PrintAllTools()
+        {
             SortedList tools = new SortedList();
             for (int i=0; i<CLDProject.Operations.Count; i++){
                 var op = CLDProject.Operations[i];
@@ -91,6 +91,8 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnStartProject(ICLDProject prj)
         {
             nc = new NCFile();
+            cycle = new CycleSinumerik840D(this, nc);
+            
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
             nc.ProgNumber = Settings.Params.Int["OutFiles.NCProgNumber"];
 
@@ -143,12 +145,9 @@ namespace SprutTechnology.SCPostprocessor
             else Debug.Write("Unknown coordinate system");
         }
 
-        //(ORIGIN part)
+        //ORIGIN's part
         public override void OnWorkpieceCS(ICLDOriginCommand cmd, CLDArray cld)
         {
-            //nc.GWCS.v = cmd.CSNumber;
-            // nc.Block.Show(nc.BlockN, nc.GWCS);
-            // nc.Block.Out();
             base.OnWorkpieceCS(cmd, cld);
         }
         
@@ -177,8 +176,6 @@ namespace SprutTechnology.SCPostprocessor
             var newGplane = ChangeGPlane((double)cmd.Plane);
             if (newGplane != 0) Plane_ = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
-
-            //nc.Block.Show(nc.F, nc.GInterp, nc.S, nc.S2, nc.S3);
         }
 
         public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
@@ -232,7 +229,7 @@ namespace SprutTechnology.SCPostprocessor
             else activeLatheSpindle = 1;
         }
 
-        //выбор активной державки заготовки          
+        //Выбор активной державки заготовки          
         public override void OnSelWorkpiece(ICLDSelWorkpieceCommand cmd, CLDArray cld)
         {
             DetectSpindle(cmd); //spindle type definition (main, counter)
@@ -472,8 +469,9 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Y.v0 = nc.Y.v;
             }
             
-            nc.Block.Out();
-            nc.LastP = cmd.EP;
+            if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed ) nc.Block.Out();
+            PT_ = cmd.EP; // current coordinates
+            //nc.LastP = cmd.EP;
         }
 
         public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
@@ -520,9 +518,9 @@ namespace SprutTechnology.SCPostprocessor
 
             if (currentOperationType == OpType.Lathe) nc.Y.v0 = nc.Y.v; //don't output in lathe 
 
-            if (Abs(nc.GPlane.v) == 17 && nc.LastP.Z == nc.Z.v) nc.Z.v0 = nc.Z.v;
-            else if (Abs(nc.GPlane.v) == 17 && nc.LastP.Y == nc.Y.v) nc.Y.v0 = nc.Y.v;
-            else if (Abs(nc.GPlane.v) == 17 && nc.LastP.X == nc.X.v) nc.X.v0 = nc.X.v;
+            if (Abs(nc.GPlane.v) == 17 && PT_.Z == nc.Z.v) nc.Z.v0 = nc.Z.v;
+            else if (Abs(nc.GPlane.v) == 17 && PT_.Y == nc.Y.v) nc.Y.v0 = nc.Y.v;
+            else if (Abs(nc.GPlane.v) == 17 && PT_.X == nc.X.v) nc.X.v0 = nc.X.v;
 
             //Если спираль, то выводим Turn (количество оборотов) явно
             if(Abs(nc.GPlane.v) == 17 && PT_.Z != nc.Z.v)
@@ -623,12 +621,135 @@ namespace SprutTechnology.SCPostprocessor
         {
             nc.Block.Out();
 
-            nc.GPause.v = 4;
-            nc.FPause.v = cmd.TimeSpan;
-
-            nc.Block.Show(nc.GPause, nc.FPause);
+            nc.GPause.Show(4);
+            nc.FPause.Show(cmd.TimeSpan);
 
             nc.Block.Out();
+        }
+
+        public override void OnCycle(ICLDCycleCommand cmd, CLDArray cld)
+        {
+            #region Cycle variables
+            //int KodCycle;      
+            //int CycleNumber;
+            double RTP;
+            double RFP;
+            double SDIS;
+            double DP;
+            double DPR;
+            double DTB;
+            double FDEP;
+            double FDRP;
+            double DAM;
+            double DTS;
+            double FRF;
+            double VARI;
+            double VRT;
+            double DTD;
+            double DIS1;
+            double PIT;
+            double MDEP;
+            #endregion
+
+            if (cld[1] == 72)
+            {
+                cycle.OffCycle();
+                cycle.State.IsFirstCycle = true;
+            }
+
+            else
+            {
+                nc.Block.Out();
+                cycle.OnCycle();
+                if (cld[4] > 0) // формирование значения подачи
+                {
+                    nc.F.v = cld[4] == 316 ? cld[4] * nc.S.v : cld[4];
+                    if ( nc.F.Changed ) nc.Block.Out();
+                }
+                
+                if (nc.MCoolant.Changed) nc.Block.Out(); // Вывод охлаждения перед циклом
+
+                cycle.State.KodCycle = cld[1];
+
+                #region Setting some cycle variables 
+
+                RTP = cld[8];            // пл-ть отвода (абсол)                 
+                RFP = cld[11];           // референтн пл-ть (абсол)
+                SDIS = cld[5] - cld[11]; // безопасное растояние (инкр без знака)
+                DP = cld[5] - cld[2];    // нижний уровень отверстия (абсол)
+                DPR = RFP - DP;             // Глубина отверстия отн реф плоск (без знака)
+                DTB = cld[10];           //  Пауза на глубине сверления
+                FDEP = RFP - cld[6];  // глубина одного шага сверления abs
+                FDRP = cld[6];          // глубина одного шага сверления
+                DAM = 0;                   // дегрессия (значение по умолчанию)
+                DTS = cld[10] * 2;    // Пауза удаления стружки
+                FRF = 1;                   // коэффициент подачи для первой глубины (по умолчанию)
+                VARI = 0;                  // переключатель ломка/удаление
+                VRT = 2;                   // Отвод при ломке стружки  (по умолчанию)
+                DTD = cld[10];          // Пауза на дне
+                DIS1 = 1;                  // Недоход при повторных погружениях (по умолчанию)
+                PIT = cld[12];          // Шаг резьбы
+                
+                #endregion
+
+                if (cycle.KodCycle == 153)
+                {
+                    VARI = 1;
+                    if (cycle.IsFirstCycle)
+                    {
+                        //input
+                    }
+                }
+                
+                else if (cycle.KodCycle == 288)
+                {
+                    VARI = 0;
+                    if (cycle.IsFirstCycle)
+                    {
+                        //input
+                    }
+                }
+
+                MDEP = Abs(DAM); // Минимальная глубина сверления
+                cycle.State.CycleNumber = 0;
+
+                cycle.Prms[1] = RTP;
+                cycle.Prms[2] = RFP;
+                cycle.Prms[3] = SDIS;
+                cycle.Prms[4] = DP;
+
+                switch (cycle.KodCycle)
+                {
+                    case 163:
+                        cycle.State.CycleNumber = 81; //DRILL
+                        cycle.Prms[5] = DPR;
+                        break;
+                    case 81:
+                        
+                        break;
+                    case 288:
+                        
+                        break;
+                    case 153:
+                        
+                        break;
+                    case 168:
+                        
+                        break;
+                }
+
+                if (cycle.CycleNumber > 0)
+                {
+                    //call OutCycle
+                }
+
+                cycle.State.IsFirstCycle = false;
+            }
+        }
+
+        public override void OnExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
+        {
+            base.OnExtCycle(cmd, cld);
         }
 
         public override void OnFini(ICLDFiniCommand cmd, CLDArray cld)
@@ -638,16 +759,15 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
 
             //NCSub.Output ! Выводим все неоттранслированные ранее подпрограммы
-            
         }
 
         public override void OnGoHome(ICLDGoHomeCommand cmd, CLDArray cld)
         {
-            if(cycleIsOn)
+            /*if(cycleIsOn)
             {
                 cycleIsOn = false;
                 //Cycle = 80
-            }
+            }*/
 
             nc.GInterp.v = 0;
             nc.X.v = FromP_.X;
@@ -699,7 +819,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnFilterString(ref string s, TNCFile ncFile, INCLabel label)
         {
-
             // if (!NCFiles.OutputDisabled) 
             //     Debug.Write(s);
         }

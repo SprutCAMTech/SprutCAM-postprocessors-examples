@@ -319,9 +319,12 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
             var cur  = new NCFile();
             cur.OutputFileName = NCSub.Name[cldSub.SubCode];
+            var tMc = nc.MCoolant.v;
+            var tX = nc.X.v; var tY = nc.Y.v; var tZ = nc.Z.v;
             nc = cur;
             nc.WriteLine("%_N_" + NCSub.Name[cldSub.SubCode] + "_SPF");
             OutHeader();
+            nc.MCoolant.Hide(tMc); nc.X.Hide(tX); nc.Y.Hide(tY); nc.Z.Hide(tZ);
         }
 
         public override void OnCallNCSub(ICLDSub cldSub, ICLDPPFunCommand cmd, CLDArray cld)
@@ -336,17 +339,22 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
             nc.M.Show(17);
             nc.Block.Out();
+            var tMc = nc.MCoolant.v;
+            var tX = nc.X.v;
+            var tY = nc.Y.v;
+            var tZ = nc.Z.v;
             nc = main;
+            nc.MCoolant.Hide(tMc); nc.X.Hide(tX); nc.Y.Hide(tY); nc.Z.Hide(tZ);
         }
 
         public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
         {
             var t = cmd.Text;
-            var c = this.CLDProject.CLDFiles.FileCount;
+            var c = cmd.CLDFile.Index;
             var k = Pos("@", t);
             var b = cmd.CLDFile.FileType.HasFlag(CLDFileType.NCSub);
             
-            if ((k < 0) && ((c > 1) || !b) && (t != ""))
+            if ((k < 0) && ((c > 5) || !b) && (t != ""))
                 nc.WriteLine(";" + t);
         }
 
@@ -529,6 +537,8 @@ namespace SprutTechnology.SCPostprocessor
 
                 nc.X.v = Cycle.PolarInterp ? (cld[1] * csC - cld[2] * snC) : cmd.EP.X;  // X,Y,Z in absolutes
                 nc.Y.v = Cycle.PolarInterp ? (cld[2] * csC + cld[1] * snC) : cmd.EP.Y;
+
+                nc.Z.v0 = nc.Z.v;
                 nc.Z.v = cmd.EP.Z;
 
                 nc.OutText();                     // output in block NC programm
@@ -638,14 +648,22 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
         {
             if (cmd.IsOn)
-                if (cld[2] == 1)
+                if (cld[2] == 1){
+                    nc.MCoolant.v0 = nc.MCoolant.v;
                     nc.MCoolant.v = 8; // жидкость
-                else if (cld[2] == 2) 
-                    nc.MCoolant.v = 8; // туман
-                else if (cld[2] == 3)
-                    nc.MCoolant.v = 8; // инструмент
-                else
-                    nc.MCoolant.v = 8; // что-то еще
+                }
+                else if (cld[2] == 2){ 
+                    nc.MCoolant.v0 = nc.MCoolant.v;
+                    nc.MCoolant.v = 8;
+                } // туман
+                else if (cld[2] == 3){
+                    nc.MCoolant.v0 = nc.MCoolant.v;
+                    nc.MCoolant.v = 8;
+                } // инструмент
+                else{
+                    nc.MCoolant.v0 = nc.MCoolant.v;
+                    nc.MCoolant.v = 8;
+                } // что-то еще
             else
                 nc.MCoolant.Show(9);
         }

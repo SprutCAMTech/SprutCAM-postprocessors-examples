@@ -5,10 +5,11 @@ namespace SprutTechnology.SCPostprocessor
     {
         public string ProgName;
 
-        public void OutText(){
-            if(X.Changed || Y.Changed || Z.Changed || XC_.Changed || YC_.Changed){
+        public void OutBlockMov(){
+            if (X.Changed || Y.Changed || Z.Changed || 
+                XC_.Changed || YC_.Changed || ZC_.Changed || 
+                A.Changed || B.Changed || C.Changed)
                 Block.Out();
-            }  
         }
 
         public void OutText(string text){
@@ -22,7 +23,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public void SetDefaultSpiralTurn() => Turn.Show(0);
 
-        public void SetAxisValues(ICLDMultiGotoCommand cmd, TInp3DPoint lastPnt){
+        public void SetAxisValues(ICLDMultiGotoCommand cmd, ref TInp3DPoint lastPnt){
             foreach(CLDMultiMotionAxis axis in cmd.Axes){
                 if(axis.IsX){
                     X.v = axis.Value;
@@ -45,24 +46,7 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
-        public void SetAxisValues(ICLDPhysicGotoCommand cmd){
-            foreach(CLDMultiMotionAxis axis in cmd.Axes){
-                if(axis.IsX)
-                    X.Show(axis.Value);
-                else if(axis.IsY)
-                    Y.Show(axis.Value);
-                else if(axis.IsZ)
-                    Z.Show(axis.Value);
-                else if(axis.IsA)
-                    A.Show(axis.Value);
-                else if(axis.IsB)
-                    B.Show(axis.Value);
-                else if(axis.IsC)
-                    C.Show(axis.Value);
-            }
-        }
-
-        public void SetAxisValues(ICLDGoHomeCommand cmd){
+        public void SetAxisValues(ICLDMultiMotionCommand cmd){
             foreach(CLDMultiMotionAxis axis in cmd.Axes){
                 if(axis.IsX)
                     X.Show(axis.Value);
@@ -241,63 +225,51 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
-        public void PrintCS(ICLDProject prj){
-            var CLDFiles = prj.CLDFiles;
+        private string PartMatrixToString(INamedProperty csProp) 
+        {
+            T3DMatrix m = new T3DMatrix {
+                vX = p3d(csProp.Flt["vX.X"], csProp.Flt["vX.Y"], csProp.Flt["vX.Z"]),
+                vY = p3d(csProp.Flt["vY.X"], csProp.Flt["vY.Y"], csProp.Flt["vY.Z"]),
+                vZ = p3d(csProp.Flt["vZ.X"], csProp.Flt["vZ.Y"], csProp.Flt["vZ.Z"]),
+                vT = p3d(csProp.Flt["vT.X"], csProp.Flt["vT.Y"], csProp.Flt["vT.Z"]),
+                A = 0, B = 0, C = 0, D = 1
+            };
+            TComplexRotationConvention angTypes = new TComplexRotationConvention(
+                TRotationConvention.XYZ, true, true);
+            var cs = TRotationsConverter.MatrixToLocation(m, angTypes);
+            var rounder = new NumericNCWord("{-####.####}", 0);
+            var r = (double v) => rounder.ToString(v);
+            return $"X{r(cs.P.X)} Y{r(cs.P.Y)} Z{r(cs.P.Z)} A{r(cs.N.A)} B{r(cs.N.B)} C{r(cs.N.C)}";
+        }
 
-            double[] CSNum = new double[CLDProject.Operations.Count];
+        private string WorkpieceBoxToString(INamedProperty bxProp) 
+        {
+            if (bxProp.Bol["Empty"])
+                return "";
+            var pMin = p3d(bxProp.Flt["Min.X"], bxProp.Flt["Min.Y"], bxProp.Flt["Min.Z"]);
+            var pMax = p3d(bxProp.Flt["Max.X"], bxProp.Flt["Max.Y"], bxProp.Flt["Max.Z"]);
+            pMax = pMax - pMin;
+            var rounder = new NumericNCWord("{-####.####}", 0);
+            var r = (double v) => rounder.ToString(v);
+            return $"X{r(pMin.X)} Y{r(pMin.Y)} Z{r(pMin.Z)} DX{r(pMax.X)} DY{r(pMax.Y)} DZ{r(pMax.Z)}";
+        }
 
-            double[] dx = new double[CLDProject.Operations.Count]; double[] dy = new double[CLDProject.Operations.Count]; 
-            double[] dz = new double[CLDProject.Operations.Count]; double[] da = new double[CLDProject.Operations.Count];
-            double[] db = new double[CLDProject.Operations.Count]; double[] dc = new double[CLDProject.Operations.Count];
-
-            double tx, ty, tz, ta, tb, tc; 
-            int n, ok, k, Cnt = 0, i = 0, j = 0;
-            
-            while (i < CLDFiles.FileCount) {
-                j = 1;
-                while (j < CLDFiles[i].CmdCount) {
-                    var temp = CLDFiles[i].Cmd[j];
-                    if (CLDFiles[i].Cmd[j].CmdTypeCode == 1027) 
-                        if (CLDFiles[i].Cmd[j].CLD[4] == 0){
-                            n = CLDFiles[i].Cmd[j].CLD[5];
-                            tx = temp.Flt["MCS.OriginPoint.X"]; tx = Math.Round(tx, 3);
-                            ty = temp.Flt["MCS.OriginPoint.Y"]; ty = Math.Round(ty, 3);
-                            tz = temp.Flt["MCS.OriginPoint.Z"]; tz = Math.Round(tz, 3);
-                            ta = temp.Flt["WCS.RotAngles.A"]; ta = Math.Round(ta, 3);
-                            tb = temp.Flt["WCS.RotAngles.B"]; tb = Math.Round(tb, 3);
-                            if(tb == -0)
-                                tb = 0;
-                            tc = temp.Flt["WCS.RotAngles.C"]; tc = Math.Round(tc, 3);
-                            ok = 0; k = 1;
-                            while (k <= Cnt) {
-                                if ((n == CSNum[k]) && (Abs(tx-dx[k]) < 0.0001) && (Abs(ty-dy[k]) < 0.0001) && (Abs(tz-dz[k]) < 0.0001) &&
-                                    (Abs(ta-da[k]) < 0.0001) && (Abs(tb-db[k]) < 0.0001) && (Abs(tc-dc[k]) < 0.0001))
-                                    {
-                                        ok = 1;
-                                        k = Cnt;
-                                    }
-                                k += 1;
-                            }
-                            if (ok == 0) {
-                                Cnt += 1;
-                                CSNum[Cnt] = n;
-                                dx[Cnt] = tx; dy[Cnt] = ty; dz[Cnt] = tz;
-                                da[Cnt] = ta; db[Cnt] = tb; dc[Cnt] = tc;
-                            }
-                        }
-                    j++;
+        public void PrintCS(ICLDProject prj)
+        {
+            nc.WriteComment(" Workpiece list");
+            var f = prj.CLDFiles[0];
+            var parts = prj.Arr["Parts"]; 
+            for (int i = 0; i<=parts.TopItem; i++) {
+                var prt = parts[i];
+                nc.WriteComment(" " + prt.Str["Name"]);
+                var csList = prt.Arr["WCSList"]; 
+                for (int j = 0; j<=csList.TopItem; j++) {
+                    var cs = csList[j];
+                    nc.WriteComment($"   G{cs.Str["Number"]} = {PartMatrixToString(cs.Ptr["Location"])}");
                 }
-                i++;
+                nc.WriteComment($"   WRK = {WorkpieceBoxToString(prt.Ptr["WorkpieceBox"])}");
             }
-  
-            if (Cnt > 0) {
-                nc.WriteComment(" Workpiece coordinate systems");
-                for (i = 1; i < Cnt + 1; i++) {
-                    nc.WriteComment(" G" + Str(CSNum[i]) + " = X"+ Str(dx[i]) + " Y" + Str(dy[i]) +" Z" + Str(dz[i]) +
-                    " A" + Str(da[i]) + " B" + Str(db[i]) + " C" + Str(dc[i])) ;
-                }
-                nc.WriteLine();
-            }
+            nc.WriteLine();
         }
 
         #endregion 
@@ -353,7 +325,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine();
 
             PrintCS(prj);
-            nc.WriteLine();
+            // nc.WriteLine();
 
             LastPnt = new TInp3DPoint();
             Cycle = new SinumerikCycle(this);
@@ -509,7 +481,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Z.v0 = nc.Z.v;
                 nc.Z.v = cmd.EP.Z;
 
-                nc.OutText();                     // output in block NC programm
+                nc.OutBlockMov();                     // output in block NC programm
                 LastPnt.X = nc.X.v; LastPnt.Y = nc.Y.v; LastPnt.Z = nc.Z.v; // current coordinates
             } 
             LastPnt.X = cld[1]; LastPnt.Y = cld[2]; LastPnt.Z = cld[3]; //Запоминаем координаты отвертсий
@@ -533,11 +505,10 @@ namespace SprutTechnology.SCPostprocessor
                 nc.GInterp.v = 1;
 
             //N50 G0 B0 C0
-            nc.SetAxisValues(cmd, LastPnt);
+            nc.SetAxisValues(cmd, ref LastPnt);
             
             nc.GInterp.UpdateState();
-            if(nc.X.Changed || nc.Y.Changed || nc.Z.Changed || nc.A.Changed || nc.B.Changed || nc.C.Changed)
-                nc.Block.Out();
+            nc.OutBlockMov();
         }
 
         public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
@@ -583,7 +554,7 @@ namespace SprutTechnology.SCPostprocessor
             if (Abs(nc.GPlane.v) != 17)
                 nc.ZC_.Show(cld[3]);
 
-            nc.OutText(); 
+            nc.OutBlockMov(); 
             LastPnt.X = tempX; LastPnt.Y = tempY; LastPnt.Z = tempZ;
         }
 

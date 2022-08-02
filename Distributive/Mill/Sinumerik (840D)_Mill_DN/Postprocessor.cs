@@ -78,8 +78,6 @@ namespace SprutTechnology.SCPostprocessor
 
         double Plane_;
 
-        int CSOnCount = 0;
-
         public TInp3DPoint LastPnt;
 
         int ExcitedAxABrake; // 0-need't output, 1-need output
@@ -333,12 +331,10 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld){
             Cycle.SetFirstStatus(true);
-            CSOnCount = 0;
         }
 
         public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            Cycle.Cycle800SwitchOff();
             if (cmd.TechInfo.Enabled) {
                 if (cmd.CLDFile.Index != CLDProject.CLDFiles.FileCount - 1){    
                     nc.M.Show(1);
@@ -348,59 +344,58 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
-        public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
+        public override void OnWorkpieceCS(ICLDOriginCommand cmd, CLDArray cld)
         {
-            int v_Dir = 0, v_ST;
-            double v_A, v_B, v_C;
+            nc.CoordSys.v = cmd.CSNumber;
+        }
 
-            if (cld[4] == 0) {// Select standard workpiece CS
-                CSOnCount += 1;
-                nc.CoordSys.v = cld[5];
-                if (CSOnCount > 1){ 
-                    nc.CoordSys.v0 = nc.CoordSys.v;
-                    Cycle.Cycle800SwitchOff();
-                }
-            } else if (cld[4] == 1079) { // Local CS activation (CYCLE800)
+        public override void OnLocalCS(ICLDOriginCommand cmd, CLDArray cld)
+        {
+            if (cmd.IsOff) {
+                Cycle.Cycle800SwitchOff();
+            } else { // Local CS activation (CYCLE800)
                 nc.Block.Out();
 
-                if (cmd.Int["PositioningMode"] > 0) { // Turn, Move
+                int v_Dir = 0; // Stay
+                if (cmd.PositioningMode > CLDOriginPositionMode.Stay) { // Turn, Move
                     if (cmd.Ptr["Axes(AxisBPos)"] != null) 
-                        if (cmd.Flt["Axes(AxisBPos).Value"] >= 0) v_Dir = +1;
-                        else v_Dir = -1;
-
+                        if (cmd.Flt["Axes(AxisBPos).Value"] >= 0) 
+                            v_Dir = +1;
+                        else 
+                            v_Dir = -1;
                     if (cmd.Ptr["Axes(AxisAPos)"] != null)
-                        if (cmd.Flt["Axes(AxisAPos).Value"] >= 0) v_Dir = +1;
-                        else v_Dir = -1;
-                } else // Stay
-                    v_Dir = 0;
+                        if (cmd.Flt["Axes(AxisAPos).Value"] >= 0) 
+                            v_Dir = +1;
+                        else 
+                            v_Dir = -1;
+                } 
 
-                v_ST = 000000;
+                int v_ST = 000000;
                 if (v_Dir > 0)
                     v_ST = v_ST + 200000; // Direction selection "Plus" optimized, Swivel no direction "minus" off
                 else if (v_Dir < 0) 
                     v_ST = v_ST + 100000; // Direction selection "Minus" optimized, Swivel no direction "plus" off
-
-                if (cmd.Int["IsSpatial"] > 0)
+                
+                if (cmd.IsSpatial)
                     //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
                     Cycle.Cycle800(0, "", v_ST, 0*128 + 0*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
-                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
-                        cmd.Flt["WCS.RotAngles.A"], cmd.Flt["WCS.RotAngles.B"], cmd.Flt["WCS.RotAngles.C"],
+                        cmd.WCS.P.X, cmd.WCS.P.Y, cmd.WCS.P.Z,
+                        cmd.WCS.N.A, cmd.WCS.N.B, cmd.WCS.N.C,
                         0, 0, 0, v_Dir, 0);
-                else{
-                    if (cmd.Ptr["Axes(AxisAPos)"] != null) v_A = cmd.Flt["Axes(AxisAPos).Value"];
-                    else v_A = 0;
-                    if (cmd.Ptr["Axes(AxisBPos)"] != null) v_B = cmd.Flt["Axes(AxisBPos).Value"];
-                    else v_B = 0;
-                    if (cmd.Ptr["Axes(AxisCPos)"] != null) v_C = cmd.Flt["Axes(AxisCPos).Value"];
-                    else v_C = 0;
+                else {
+                    double v_A = 0, v_B = 0, v_C = 0;     
+                    if (cmd.Ptr["Axes(AxisAPos)"] != null) 
+                        v_A = cmd.Flt["Axes(AxisAPos).Value"];
+                    if (cmd.Ptr["Axes(AxisBPos)"] != null) 
+                        v_B = cmd.Flt["Axes(AxisBPos).Value"];
+                    if (cmd.Ptr["Axes(AxisCPos)"] != null) 
+                        v_C = cmd.Flt["Axes(AxisCPos).Value"];
                     //CYCLE800(_FR, _TC, _ST, _MODE, _X0, _Y0, _Z0, _A, _B, _C, _X1, _Y1, _Z1, _DIR, _FR _I)
                     Cycle.Cycle800(0, "", v_ST, 1*128 + 1*64 + 1*32 + 1*16 + 1*8 + 0*4 + 0*2 + 1*1,
-                        cmd.Flt["WCS.OriginPoint.X"], cmd.Flt["WCS.OriginPoint.Y"], cmd.Flt["WCS.OriginPoint.Z"],
+                        cmd.WCS.P.X, cmd.WCS.P.Y, cmd.WCS.P.Z,
                         v_A, v_B, v_C, 0, 0, 0, v_Dir, 0);
                 }
-                Cycle.SetCycle800Status(true);
-            } else
-                throw new Exception("Unknown coordinate system");
+            }
         }
         
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
@@ -565,7 +560,6 @@ namespace SprutTechnology.SCPostprocessor
             else
                 nc.Block.Hide();
             nc.Block.Out();
-            Cycle.Cycle800SwitchOff();
 
             nc.SetAxisValues(cmd);
 
@@ -613,7 +607,6 @@ namespace SprutTechnology.SCPostprocessor
                 Cycle.SetStatus(false);
             nc.Block.Out();
 
-            Cycle.Cycle800SwitchOff();
             nc.SetAxisValues(cmd);
             nc.SUPA.Show();
             nc.GInterp.Show(0);

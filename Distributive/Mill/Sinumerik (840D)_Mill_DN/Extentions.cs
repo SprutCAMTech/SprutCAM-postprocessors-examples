@@ -25,12 +25,6 @@ namespace SprutTechnology.SCPostprocessor{
             return cycle;
         }
 
-        ///<summary>Set cycle800 status of the cycle: false - not cycle800, true - cycle800</summary>
-        public static SinumerikCycle SetCycle800Status(this SinumerikCycle cycle, bool status){
-            cycle.State.WasCycle800 = status;
-            return cycle;
-        }
-
         ///<summary>Set pocket status of the cycle: false - not pocket, true - pocket</summary>
         public static SinumerikCycle SetPocketStatus(this SinumerikCycle cycle, bool status){
             cycle.State.Cycle_pocket = status;

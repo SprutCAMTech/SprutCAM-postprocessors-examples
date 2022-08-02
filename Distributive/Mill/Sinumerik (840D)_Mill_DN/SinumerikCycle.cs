@@ -13,8 +13,6 @@ namespace SprutTechnology.SCPostprocessor{
 
         public string Cyclecompare = "";    // Сравниваем строки для того, чтобы знать нужно ли выводить цикл
 
-        public bool WasCycle800 = false;
-
         public CycleState(){
             Prms = new InpArray<double>();
         }
@@ -54,15 +52,11 @@ namespace SprutTechnology.SCPostprocessor{
         public void AddPrm(double value, int i) => State.AddPrm(value, i);
 
         public void Cycle800SwitchOff(){
-            double tInterp;
-            tInterp = nc.GInterp.v0; nc.GInterp.v0 = nc.GInterp.v;
+            nc.GInterp.Hide();
             nc.Block.Out();
-            if (State.WasCycle800) {
-                nc.WriteLine($"{nc.BlockN} CYCLE800()");
-                nc.BlockN.AddStep();
-                this.SetCycle800Status(false);
-            }
-            nc.GInterp.v0 = tInterp;
+            nc.WriteLine($"{nc.BlockN} CYCLE800()");
+            nc.BlockN.AddStep();
+            nc.GInterp.UpdateState();
         }
 
         public void Cycle800(int v_FR, string v_TC, int v_ST, int v_MODE, double v_X0, 

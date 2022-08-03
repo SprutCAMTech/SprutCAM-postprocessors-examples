@@ -54,16 +54,15 @@ namespace SprutTechnology.SCPostprocessor{
         public void Cycle800SwitchOff(){
             nc.GInterp.Hide();
             nc.Block.Out();
-            nc.WriteLine($"{nc.BlockN} CYCLE800()");
-            nc.BlockN.AddStep();
+            nc.WriteLineWithBlockN($"CYCLE800()");
             nc.GInterp.UpdateState();
         }
 
-        public void Cycle800(int v_FR, string v_TC, int v_ST, int v_MODE, double v_X0, 
-            double v_Y0, double v_Z0, double v_A, double v_B, double v_C, 
-            double v_X1, double v_Y1, double v_Z1, int v_DIR, double v_FR_I){
-            nc.WriteLine($"{nc.BlockN} CYCLE800({v_FR},\"{v_TC}\",{v_ST},{v_MODE},{v_X0},{v_Y0},{v_Z0},{v_A},{v_B},{v_C},{v_X1},{v_Y1},{v_Z1},{v_DIR},{v_FR_I},0)");
-            nc.BlockN.AddStep();
+        public void Cycle800(int FR, string TC, int ST, int MODE, double X0, 
+            double Y0, double Z0, double A, double B, double C, 
+            double X1, double Y1, double Z1, int DIR, double FR_I)
+        {
+            nc.WriteLineWithBlockN($"CYCLE800({FR},\"{TC}\",{ST},{MODE},{X0},{Y0},{Z0},{A},{B},{C},{X1},{Y1},{Z1},{DIR},{FR_I},0)");
         }
 
         public void OutCycle(string ACycleID, string CycleGeomName){
@@ -88,12 +87,11 @@ namespace SprutTechnology.SCPostprocessor{
             if (Prms.Count > 0) sss = sss + ")";
             if (State.Cyclecompare != sss) {       //Добавил вариант для того, чтобы выводить массив отверстий одним циклом
                 if (!IsFirstCycle && !Cycle_pocket) {          //меняется параметр, нужно закрыть цикл
-                    nc.WriteLine($"{nc.BlockN} MCALL"); nc.BlockN.AddStep();
+                    nc.WriteLineWithBlockN($"MCALL"); 
                     nc.X.v = post.LastPnt.X; nc.Y.v = post.LastPnt.Y ; nc.GInterp.v0 = double.MaxValue ; nc.Block.Out();   //Холостые ходы между проходами
                 }
                 var t = nc.GInterp.Changed ? nc.GInterp : null;
-                nc.WriteLine($"{nc.BlockN} {t}{sss}"); //Вывод цикла
-                nc.BlockN.AddStep();
+                nc.WriteLineWithBlockN($"{t}{sss}"); //Вывод цикла
                 this.SetCycleCompareString(sss);  //Запоминаем все параметры цикла
             }
         }
@@ -126,5 +124,42 @@ namespace SprutTechnology.SCPostprocessor{
                     break;
             }
         }
+
+        ///<summary>Set status of the cycle: false - off, true - on</summary>
+        public SinumerikCycle SetStatus(bool status){
+            State.CycleOn = status;
+            return this;
+        }
+
+        ///<summary>Set polar interpolation status of the cycle: false - off, true - on</summary>
+        public SinumerikCycle SetPolarInterpolationStatus(bool status){
+            State.PolarInterp = status;
+            return this;
+        }
+
+        ///<summary>Set cilind interpolation status of the cycle: false - off, true - on</summary>
+        public SinumerikCycle SetCilindInterpolationStatus(bool status){
+            State.CylindInterp = status;
+            return this;
+        }
+
+        ///<summary>Set first status of the cycle: false - not first cycle, true - first cycle</summary>
+        public SinumerikCycle SetFirstStatus(bool status){
+            State.IsFirstCycle = status;
+            return this;
+        }
+
+        ///<summary>Set pocket status of the cycle: false - not pocket, true - pocket</summary>
+        public SinumerikCycle SetPocketStatus(bool status){
+            State.Cycle_pocket = status;
+            return this;
+        }
+
+        ///<summary>Set first status of the cycle: 0 - not cycle800, 1 - cycle800</summary>
+        public SinumerikCycle SetCycleCompareString(string compare){
+            State.Cyclecompare = compare;
+            return this;
+        }
+
     }
 }

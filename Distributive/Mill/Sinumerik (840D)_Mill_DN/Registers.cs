@@ -59,11 +59,11 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Coolant for M8, M9</summary>
         public NumericNCWord MCoolant = new NumericNCWord("M{#}", 9);
         ///<summary>Axes A break</summary>
-        public NumericNCWord MABreak = new NumericNCWord("M{####}", double.MaxValue);
+        public NumericNCWord MABrake = new NumericNCWord("M{####}", double.MaxValue);
         ///<summary>Axes B break</summary>
-        public NumericNCWord MBBreak = new NumericNCWord("M{####}", double.MaxValue);
+        public NumericNCWord MBBrake = new NumericNCWord("M{####}", double.MaxValue);
         ///<summary>Axes C break</summary>
-        public NumericNCWord MCBreak = new NumericNCWord("M{####}", double.MaxValue);
+        public NumericNCWord MCBrake = new NumericNCWord("M{####}", double.MaxValue);
         ///<summary>Feed value</summary>
         public NumericNCWord Feed = new NumericNCWord("F{######}", 10000);
         ///<summary></summary>
@@ -99,9 +99,9 @@ namespace SprutTechnology.SCPostprocessor
                   M,
                   Msp,
                   MCoolant,
-                  MABreak,
-                  MBBreak,
-                  MCBreak,
+                  MABrake,
+                  MBBrake,
+                  MCBrake,
                   Feed,
                   FPause,
                   Text);

@@ -5,7 +5,7 @@
 <Settings Version="1.0">
     <Description>
         <Comments />
-        <CNCSystem />
+        <CNCSystem>Sinumerik 840D</CNCSystem>
         <MachineName />
         <Authors />
     </Description>
@@ -22,6 +22,9 @@
         <Group ID="OutFiles" Caption="$(OutputFiles)">
             <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
             <Parameter ID="NCProgName" Caption="NC program name" Type="String" />
+        </Group>
+        <Group ID="Format" Caption="Format">
+            <Parameter ID="BlocksNumbering" Caption="Blocks numbering" Type="Boolean">True</Parameter>
         </Group>
     </UserDefinedParameters>
 </Settings>

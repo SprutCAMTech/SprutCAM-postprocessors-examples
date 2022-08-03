@@ -17,6 +17,18 @@ namespace SprutTechnology.SCPostprocessor
             Block.Out();
         }
 
+        public void WriteLineWithBlockN(string line)
+        {
+            if (String.IsNullOrEmpty(line))
+                return;
+            if (BlockN.Disabled)
+                WriteLine(line);
+            else {
+                WriteLine(BlockN.ToString() + Block.WordsSeparator + line);
+                BlockN.v += BlockN.AutoIncrementStep;
+            }
+        }
+
         public void WriteComment(string text) { 
             WriteLine(";" + text);
         }
@@ -76,13 +88,7 @@ namespace SprutTechnology.SCPostprocessor
 
         SinumerikCycle Cycle = null;
 
-        double Plane_;
-
         public TInp3DPoint LastPnt;
-
-        int ExcitedAxABrake; // 0-need't output, 1-need output
-        int ExcitedAxBBrake; // 0-need't output, 1-need output
-        int ExcitedAxCBrake; // 0-need't output, 1-need output
 
         double DAM;
         double VARI;
@@ -106,6 +112,9 @@ namespace SprutTechnology.SCPostprocessor
         }
 
         public void OutHeader(bool isSub){
+            if (!Settings.Params.Bol["Format.BlocksNumbering"])
+                nc.BlockN.Disable();
+
             if (isSub) {
                 nc.WriteLine("%_N_" + nc.ProgName + "_SPF");
                 nc.WriteComment("$PATH=/_N_SPF_DIR");
@@ -119,76 +128,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteComment($" Date: {CurDate()}");
             nc.WriteComment($" Time: {CurTime()}");
             nc.WriteLine();
-        }
-
-        public void CheckAxesBrake(int ABrake, int BBrake, int CBrake){
-            int NeedAxesBrake, tInterp;
-
-            NeedAxesBrake = 0;
-            if (NeedAxesBrake > 0){ 
-                if (nc.GInterp.v != nc.GInterp.v0) {
-                    tInterp = (int)nc.GInterp.v;
-                    nc.GInterp.v = nc.GInterp.v0;
-                } else
-                tInterp = -1;
-
-                if (ABrake >= 0){
-                    if (ABrake == 2) {
-                        if (ExcitedAxABrake > 0) { // Brake excited before real move command
-                            ExcitedAxABrake = 0;
-                            nc.Block.Out();
-                            nc.MABreak.v0 = double.MaxValue;
-                            nc.Block.Out();
-                        }
-                    } else {
-                        if (ABrake == 1) nc.MABreak.v = 46; // On
-                        else nc.MABreak.v = 47; // Off
-                        if ((ExcitedAxABrake>0) && (nc.MABreak.v != nc.MABreak.v0)) // Idle brake excite
-                            ExcitedAxABrake = 0;
-                        else
-                            ExcitedAxABrake = nc.MABreak.v != nc.MABreak.v0 ? 1 : 0;
-                    }
-                    nc.MABreak.v0 = nc.MABreak.v;
-                }
-                if (BBrake >= 0){
-                    if (BBrake == 2) {
-                        if (ExcitedAxBBrake > 0) { // Brake excited before real move command
-                            ExcitedAxBBrake = 0;
-                            nc.Block.Out();
-                            nc.MBBreak.v0 = double.MaxValue;
-                            nc.Block.Out();
-                        }
-                    } else {
-                        if (BBrake == 1) nc.MBBreak.v = 48; // On
-                        else nc.MABreak.v = 49; // Off
-                        if ((ExcitedAxBBrake>0) && (nc.MBBreak.v != nc.MBBreak.v0)) // Idle brake excite
-                            ExcitedAxBBrake = 0;
-                        else
-                            ExcitedAxBBrake = nc.MBBreak.v != nc.MBBreak.v0 ? 1 : 0;
-                    }
-                    nc.MBBreak.v0 = nc.MBBreak.v;
-                }
-                if (CBrake >= 0){
-                    if (CBrake == 2) {
-                        if (ExcitedAxCBrake > 0) { // Brake excited before real move command
-                            ExcitedAxCBrake = 0;
-                            nc.Block.Out();
-                            nc.MCBreak.v0 = double.MaxValue;
-                            nc.Block.Out();
-                        }
-                    } else {
-                        if (CBrake == 1) nc.MBBreak.v = 48; // On
-                        else nc.MCBreak.v = 49; // Off
-                        if ((ExcitedAxCBrake>0) && (nc.MCBreak.v != nc.MCBreak.v0)) // Idle brake excite
-                            ExcitedAxCBrake = 0;
-                        else
-                            ExcitedAxCBrake = nc.MCBreak.v != nc.MCBreak.v0 ? 1 : 0;
-                    }
-                    nc.MCBreak.v0 = nc.MCBreak.v;
-                }
-
-                if (tInterp >= 0) nc.GInterp.v = tInterp;
-            }   
         }
 
         public void PrintAllTools(){
@@ -221,6 +160,7 @@ namespace SprutTechnology.SCPostprocessor
             foreach (var tl in sl){
                 nc.WriteComment(" T" + tl.Key + " = " + tl.Value);
             }
+            nc.WriteLine();
         }
 
         private string PartMatrixToString(INamedProperty csProp) 
@@ -242,7 +182,7 @@ namespace SprutTechnology.SCPostprocessor
 
         private string WorkpieceBoxToString(INamedProperty bxProp) 
         {
-            if (bxProp.Bol["Empty"])
+            if ((bxProp==null) || bxProp.Bol["Empty"])
                 return "";
             var pMin = p3d(bxProp.Flt["Min.X"], bxProp.Flt["Min.Y"], bxProp.Flt["Min.Z"]);
             var pMax = p3d(bxProp.Flt["Max.X"], bxProp.Flt["Max.Y"], bxProp.Flt["Max.Z"]);
@@ -257,13 +197,17 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteComment(" Workpiece list");
             var f = prj.CLDFiles[0];
             var parts = prj.Arr["Parts"]; 
+            if (parts==null)
+                return;
             for (int i = 0; i<=parts.TopItem; i++) {
                 var prt = parts[i];
                 nc.WriteComment(" " + prt.Str["Name"]);
                 var csList = prt.Arr["WCSList"]; 
-                for (int j = 0; j<=csList.TopItem; j++) {
-                    var cs = csList[j];
-                    nc.WriteComment($"   G{cs.Str["Number"]} = {PartMatrixToString(cs.Ptr["Location"])}");
+                if (csList!=null) {
+                    for (int j = 0; j<=csList.TopItem; j++) {
+                        var cs = csList[j];
+                        nc.WriteComment($"   G{cs.Str["Number"]} = {PartMatrixToString(cs.Ptr["Location"])}");
+                    }
                 }
                 nc.WriteComment($"   WRK = {WorkpieceBoxToString(prt.Ptr["WorkpieceBox"])}");
             }
@@ -285,7 +229,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnCallNCSub(ICLDSub cldSub, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            CheckAxesBrake(2, 2, 2);
             nc.Block.Out();            
             nc.WriteLine($"CALL \"_N_{cldSub.Name}_SPF\"");
         }
@@ -320,10 +263,8 @@ namespace SprutTechnology.SCPostprocessor
             OutHeader(false);
 
             PrintAllTools();
-            nc.WriteLine();
 
             PrintCS(prj);
-            // nc.WriteLine();
 
             LastPnt = new TInp3DPoint();
             Cycle = new SinumerikCycle(this);
@@ -400,41 +341,36 @@ namespace SprutTechnology.SCPostprocessor
         
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
-            int OldCoordSys;
-            OldCoordSys = (int)nc.CoordSys.v0; nc.CoordSys.v0 = nc.CoordSys.v;
-            nc.Tool.Show(cmd.TechOperation.Tool.Number);
-            // nc.Tool.v = cmd.TechOperation.Tool.Number; nc.Tool.v0 = double.MaxValue;
-            nc.DTool.v = Abs(cld[6]); nc.DTool.v0 = nc.DTool.v;
-            if(cmd.TechOperation.Tool.Command != null){
-                nc.OutText($"{cmd.TechOperation.Tool.Caption}");
-                nc.OutText("M6");
-            }
+            nc.CoordSys.Hide();
+            nc.Tool.Show(cmd.Number);
+            nc.DTool.Reset(Abs(cmd.LCorNum));
+            nc.OutText($"{cmd.TechOperation.Tool.Caption}");
+            nc.OutText("M6");
             
-            Plane_ = ((double)cmd.Plane);
             nc.Feed.RestoreDefaultValue(false);
             nc.GInterp.RestoreDefaultValue(false); nc.GPlane.RestoreDefaultValue(false);
             nc.X.RestoreDefaultValue(false); nc.Y.RestoreDefaultValue(false); nc.Z.RestoreDefaultValue(false);
             nc.A.RestoreDefaultValue(false); nc.B.RestoreDefaultValue(false); nc.C.RestoreDefaultValue(false);
-            nc.CoordSys.v0 = double.MaxValue;
+            nc.CoordSys.Show();
         }
 
-        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld) => nc.GPlane.Hide(cmd.PlaneGCode);
+        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)  
+        {
+            nc.GPlane.v = cmd.PlaneGCode;
+        }
 
         public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
         {
             if (cmd.IsOn) { // Spindle On
-                nc.GPlane.v = Plane_;
-                if (Abs(nc.GPlane.v) == Abs(nc.GPlane.v0))
-                    nc.GPlane.v0 = nc.GPlane.v;
                 nc.CoordSys.Show();
                 nc.Block.Out();
-                switch (cld[4]){
-                    case 0: //RPM
+                switch (cmd.SpeedMode){
+                    case CLDSpindleSpeedMode.RPM:
                         nc.S.Show(cld[2]);
                         nc.Msp.Show(cmd.IsClockwiseDir ? 3 : 4);
                         nc.Block.Out();
                         break;
-                    case 2: // css
+                    case CLDSpindleSpeedMode.CSS: // css
                         throw new Exception("CSS mode not realized");
                 }
             } else if (cmd.IsOff){ // Spindle Off
@@ -442,20 +378,22 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Block.Out();
             } else if (cmd.IsOrient) { /* Spindle Orient*/ }
         }
-        
-        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
+
+        public override void OnRadiusCompensation(ICLDCutComCommand cmd, CLDArray cld)
         {
-            if (cld[2] == 23)     // Radius
-                if (cld[1] == 72) // Off
-                    nc.KorEcv.v = 40;
-                else              // On
-                    if (cld[10] == 24) nc.KorEcv.v = 42;
-                    else nc.KorEcv.v = 41;
-            else if (cld[2] == 9) // Length
-                    if (cld[1] == 71) { // On
-                        nc.DTool.v = Abs(cld[3]); nc.DTool.v0 = nc.DTool.v;//MaxReal
-                    //OutBlock
-                    }
+            if (cmd.IsOn) {
+                if (cmd.IsRightDirection)
+                    nc.KorEcv.v = 42;
+                else
+                    nc.KorEcv.v = 41;
+            } else
+                nc.KorEcv.v = 40;
+        }
+
+        public override void OnLengthCompensation(ICLDCutComCommand cmd, CLDArray cld)
+        {
+            if (cmd.IsOn)  
+                nc.DTool.Reset(Abs(cmd.CorrectorNumber));
         }
 
         public override void OnFrom(ICLDFromCommand cmd, CLDArray cld)
@@ -466,7 +404,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
-            CheckAxesBrake(2, 2, 2);
             if (!Cycle.CycleOn || Cycle.Cycle_pocket) {  // Другой вывод для сверлильных циклов позиций отверстий
                 if ((nc.GInterp.v > 1) && (nc.GInterp.v < 4))  nc.GInterp.v = 1;
 
@@ -494,8 +431,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
         {
-            CheckAxesBrake(2, 2, 2);
-
             if ((nc.GInterp.v != 0) && (nc.GInterp.v != 1)) 
                 nc.GInterp.v = 1;
 
@@ -555,19 +490,13 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnPhysicGoto(ICLDPhysicGotoCommand cmd, CLDArray cld)
         {
-            if(nc.GInterp.Changed)
-                nc.Block.Show();
-            else
-                nc.Block.Hide();
             nc.Block.Out();
 
             nc.SetAxisValues(cmd);
 
             if (nc.X.Changed || nc.Y.Changed || nc.Z.Changed || nc.A.Changed || nc.B.Changed || nc.C.Changed)
             {
-                // nc.G.v = 53; nc.G.v0 = double.MaxValue;
                 nc.SUPA.Show();
-                // nc.SUPA.v = 1; nc.SUPA.v0 = 0;
                 nc.DTool.v = 0; // Корректор на длину
                 nc.Block.Out();
             }
@@ -616,7 +545,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.GPlane.RestoreDefaultValue(false);
         }
 
-        public override void OnExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
+        public override void OnHoleExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
         {
             int CycleNumber;       // Cycle number
             string CycleName;      // Cycle name
@@ -638,8 +567,6 @@ namespace SprutTechnology.SCPostprocessor
             }
             else if (cmd.IsOff) Cycle.SetStatus(false); // OFF
             else if (cmd.IsCall) { // CALL
-                CheckAxesBrake(2, 2, 2);
-
                 CycleNumber = 0;
                 CycleName = "CYCLE";
                 CycleGeomName = "";
@@ -834,8 +761,7 @@ namespace SprutTechnology.SCPostprocessor
             }
 
             if (cmd.IsOff && cmd.CycleType != 491) {//Выключение цикла
-                nc.WriteLine($"{nc.BlockN} MCALL");
-                nc.BlockN.AddStep();
+                nc.WriteLineWithBlockN($"MCALL");
                 Cycle.SetFirstStatus(true);
                 Cycle.SetCycleCompareString(""); // Принудительно стираем, т.к. цикл закрыт
             } //Выключение цикла
@@ -843,8 +769,6 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnFinishProject(ICLDProject prj)
         {
-            CheckAxesBrake(0, 0, 0);
-            CheckAxesBrake(2, 2, 2);
             nc.Block.Out();
             nc.M.Show(30);// M30 end programm
             nc.Block.Out();
@@ -856,13 +780,13 @@ namespace SprutTechnology.SCPostprocessor
             if (cmd.InterpType == 9023){// MULTIAXIS interpolation
                 if (cmd.IsOn){ // Switch on
                     nc.Block.Out();
-                    nc.WriteLine($"{nc.BlockN} TRAORI"); nc.BlockN.AddStep();
+                    nc.WriteLineWithBlockN($"TRAORI"); 
                     nc.CoordSys.v0 = double.MaxValue; nc.Block.Out();
-                    nc.WriteLine($"{nc.BlockN} ORIWKS"); nc.BlockN.AddStep();
-                    nc.WriteLine($"{nc.BlockN} ORIAXES"); nc.BlockN.AddStep();
+                    nc.WriteLineWithBlockN($"ORIWKS");
+                    nc.WriteLineWithBlockN($"ORIAXES");
                 }else{          // Switch off
                     nc.Block.Out();
-                    nc.WriteLine($"{nc.BlockN} TRAFOOF"); nc.BlockN.AddStep();
+                    nc.WriteLineWithBlockN($"TRAFOOF");
                 }
             }else if (cmd.InterpType == 9021) {// Polar interpolation
                 if (cmd.IsOn) { // Switch on
@@ -894,18 +818,19 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnAxesBrake(ICLDAxesBrakeCommand cmd, CLDArray cld)
         {
-            int ABrake = -1, BBrake = -1, CBrake = -1;
-
             foreach(CLDAxisBrake axis in cmd.Axes){
                 if(axis.IsA)
-                    ABrake = axis.StateIsOn ? 1 : 0;
+                    nc.MABrake.v = axis.StateIsOn ? 46 : 47;
                 else if(axis.IsB)
-                    BBrake = axis.StateIsOn ? 1 : 0;
+                    nc.MBBrake.v = axis.StateIsOn ? 48 : 49;
                 else if(axis.IsC)
-                    CBrake = axis.StateIsOn ? 1 : 0;
+                    nc.MCBrake.v = axis.StateIsOn ? 10 : 11;
             }
-
-            CheckAxesBrake(ABrake, BBrake, CBrake);
+            if (nc.MABrake.Changed || nc.MBBrake.Changed || nc.MCBrake.Changed) {
+                nc.GInterp.Hide();
+                nc.Block.Out();
+                nc.GInterp.UpdateState();
+            }
         }
 
         public override void OnDelay(ICLDDelayCommand cmd, CLDArray cld)

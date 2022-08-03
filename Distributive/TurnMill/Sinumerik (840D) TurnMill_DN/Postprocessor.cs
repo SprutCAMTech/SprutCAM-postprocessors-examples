@@ -68,6 +68,8 @@ namespace SprutTechnology.SCPostprocessor
         /// 1 - on; 0 - off</summary>
         public int PolarInterp;
 
+        double PPFunFeed;
+
         #endregion
 
         void PrintAllTools()
@@ -105,7 +107,11 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Block.Out();
-            nc.Output("M30");
+            nc.M.Show(30);
+            nc.Block.Out();
+
+            //NCSub.Output ! Выводим все неоттранслированные ранее подпрограммы
+            //cldfile translate
         }
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
@@ -173,14 +179,14 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
 
             //Переключение рабочих плоскостей (XY, XZ, YZ)
-            var newGplane = ChangeGPlane((double)cmd.Plane);
+            var newGplane = ChangeGPlane((double)cmd.CLD[14]);
             if (newGplane != 0) Plane_ = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
         }
 
         public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
         {
-            var newGplane = ChangeGPlane((double)cmd.Plane);
+            var newGplane = ChangeGPlane((double)cmd.CLD[14]);
             if (newGplane != 0) Plane_ = newGplane;
             else Debug.WriteLine("Wrong given a plane of processing");
         }
@@ -221,6 +227,7 @@ namespace SprutTechnology.SCPostprocessor
         private void DetectSpindle(ICLDSelWorkpieceCommand cmd)
         {
             var ts = cmd.CLDataS.ToUpper();
+            Debug.WriteLine(ts);
             if (ts.IndexOf("COUNT") > 0 || ts.IndexOf("SUB") > 0 || ts.IndexOf("SECOND") > 0)
             {
                 activeLatheSpindle = 2;                    
@@ -725,16 +732,43 @@ namespace SprutTechnology.SCPostprocessor
                         cycle.Prms[5] = DPR;
                         break;
                     case 81:
-                        
+                        cycle.State.CycleNumber = 82; // FACE
+                        cycle.Prms[6] = DTB;
                         break;
                     case 288:
-                        
+                        cycle.State.CycleNumber = 83; // BRKCHP
+                        cycle.Prms[6] = FDEP;
+                        cycle.Prms[8] = DAM;
+                        cycle.Prms[9] = DTB;
+                        cycle.Prms[11] = FRF;
+                        cycle.Prms[12] = VARI;
+                        cycle.Prms[14] = MDEP;
+                        cycle.Prms[15] = VRT;
+                        cycle.Prms[16] = DTD;
+                        cycle.Prms[17] = DIS1;
                         break;
                     case 153:
-                        
+                        cycle.State.CycleNumber = 83; // DEEP
+                        cycle.Prms[6] = FDEP;
+                        cycle.Prms[8] = DAM;
+                        cycle.Prms[9] = DTB;
+                        cycle.Prms[10] = DTS;
+                        cycle.Prms[11] = FRF;
+                        cycle.Prms[12] = VARI;
+                        cycle.Prms[14] = MDEP;
+                        cycle.Prms[16] = DTD;
+                        cycle.Prms[17] = DIS1;
                         break;
                     case 168:
-                        
+                        cycle.State.CycleNumber = 84; // TAP
+                        cycle.Prms[7] = 3;
+                        cycle.Prms[9] = PIT;
+                        cycle.Prms[11] = nc.S3.v;
+                        cycle.Prms[12] = nc.S3.v;
+                        cycle.Prms[13] = 3;
+                        cycle.Prms[14] = 1;
+                        cycle.Prms[15] = 0;
+                        cycle.Prms[16] = 0;
                         break;
                 }
 
@@ -749,25 +783,379 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
         {
-            base.OnExtCycle(cmd, cld);
-        }
+            #region Cycle variables
 
-        public override void OnFini(ICLDFiniCommand cmd, CLDArray cld)
-        {
-            nc.Block.Out();
-            nc.M.Show(30);
-            nc.Block.Out();
+            int CDIR;              // Thread direction 2-G2, 3-G3
+            double SDIR;           // Spindle rotation direction
+            double CurPos;         // Current position (applicate)
+            double CPA = 0;            // Absciss
+            double CPO = 0;            // Ordinate
+            double TempCoord;      // Auxiliary variable
+            double RTP, RFP, SDIS, DP, DPR;
 
-            //NCSub.Output ! Выводим все неоттранслированные ранее подпрограммы
+            #endregion
+
+            if (cmd.IsOn)
+            {
+                cycle.OnCycle();
+                nc.F.Show(PPFunFeed);
+                nc.GInterp.Show(0);
+            }
+
+            else if (cmd.IsOff)
+            {
+                cycle.OffCycle();
+            }
+
+            else if (cmd.IsCall)
+            {
+                cycle.State.CycleNumber = 0;
+                cycle.State.CycleName = "CYCLE";
+                cycle.State.CycleGeomName = "";
+
+                switch (cmd.CycleType)
+                {
+                    case 473:
+                    case >= 481 and <=491:
+                        if (Abs(cld[5]) > Abs(cld[3]) && Abs(cld[5]) > Abs(cld[4])){
+                            cycle.State.CyclePlane = -Sgn(cld[5]) * 17; //XY, YX
+                        }
+
+                        else if (Abs(cld[4]) > Abs(cld[3]) && Abs(cld[4]) > Abs(cld[5])){
+                            cycle.State.CyclePlane = -Sgn(cld[4]) * 18; //ZX, XZ
+                        }
+
+                        if (Abs(cld[3]) > Abs(cld[4]) && Abs(cld[3]) > Abs(cld[5])){
+                            cycle.State.CyclePlane = -Sgn(cld[3]) * 19; //YZ, Zy
+                        }
+
+                        if (Abs(nc.GPlane.v) != Abs(cycle.CyclePlane)){
+                            nc.GPlane.v = cycle.CyclePlane;
+                            nc.Block.Out();
+                        }
+
+                        switch(Abs(nc.GPlane.v))
+                        {
+                            case 17: // XY
+                                CurPos = nc.Z.v;
+                                CPA = nc.X.v / xScale;
+                                CPO = nc.Y.v;
+                                break;
+                            case 18: // ZX
+                                CurPos = nc.Y.v;
+                                CPA = nc.Z.v;
+                                CPO = nc.X.v / xScale;
+                                break;
+                            case 19: // YZ
+                                CurPos = nc.X.v / xScale;
+                                CPA = nc.Y.v;
+                                CPO = nc.Z.v;
+                                break;
+
+                            default:
+                                CurPos = nc.Z.v;
+                                CPA = nc.X.v / xScale;
+                                CPO = nc.Y.v;
+                                Debug.WriteLine("Undefined cycle plane");
+                                break;
+                        }
+
+                        if(cycle.CyclePlane < 0){
+                            TempCoord = CPA;
+                            CPA = CPO;
+                            CPO = TempCoord;
+                        }
+
+                        // Define base levels
+                        RTP = CurPos;
+                        RFP = CurPos - cld[7]*Sgn(nc.GPlane.v); // CurPos - Tp
+                        SDIS = cld[7] - cld[6]; // Tp - Sf
+                        DP = CurPos - cld[8]*Sgn(nc.GPlane.v); // CurPos - Bt
+                        DPR = cld[8] - cld[7]; // Bt - Tp
+                        // CycleXX(RTP,RFP,SDIS,DP)
+                        cycle.Prms[1] = RTP;
+                        cycle.Prms[2] = RFP;
+                        cycle.Prms[3] = SDIS;
+                        cycle.Prms[4] = DP;
+                        cycle.State.CycleNumber = 81;
+
+                        switch(cmd.CycleType){
+                            case 481: 
+                            case 482:
+                            case >= 485 and <=489: // Simple drilling
+                                cycle.State.CycleNumber = cmd.CycleType - 400;
+                                if (cld[15] > 0) cycle.Prms[6] = cld[15]; // Delay in seconds
+                                // Spindle rotation direction
+                                SDIR = nc.S3.v > 0 ? 3 : 4;
+
+                                if ((cmd.CycleType == 486) || (cmd.CycleType == 488)){
+                                    cycle.Prms[7] = SDIR;
+                                }  
+                                else if (cmd.CycleType == 487) {
+                                    cycle.Prms[6] = SDIR;
+                                }
+                                if (cmd.CycleType == 485) {
+                                    cycle.Prms[7] = cld[10]; // WorkFeed
+                                    cycle.Prms[8] = cld[14]; // ReturnFeed
+                                }
+
+                                else if (cmd.CycleType == 486) {
+                                    cycle.Prms[8] = 0; //RPA
+                                    cycle.Prms[9] = 0; //RPO
+                                    cycle.Prms[10] = 0; // RPAP
+                                    cycle.Prms[11] = 0; // POSS
+                                }
+                                break;
+                            case 473:
+                            case 483: // Deep drilling (473-chip breaking, 483-chip removing)
+                                cycle.State.CycleNumber = 83;
+                                cycle.Prms[6] = CurPos - (cld[7]+cld[17])*Sgn(cycle.CyclePlane); // FDEP = CurPos-(Tp+St)
+                                cycle.Prms[8] = cld[18]; // DAM - degression
+                                cycle.Prms[9] = cld[15]; // DTB - Bottom delay
+                                cycle.Prms[10] = cld[16]; // DTS - Top delay
+                                cycle.Prms[11] = 1; // FRF - First feed coef
+                                cycle.Prms[12] = cmd.CycleType == 473 ? 0 : 1; // VARI - breaking or removing
+                                cycle.Prms[14] = cld[18]; // _MDEP - Minimal deep step (=degression)
+                                if(cmd.CycleType == 473){
+                                    cycle.Prms[15] = cld[20]; // _VRT - LeadOut
+                                }
+                                else{
+                                    cycle.Prms[17] = cld[19]; // _DIS1 - Deceleration
+                                }
+                                cycle.Prms[16] = 0; //_DTD - finish delay (if 0 then = DTB)
+                                break;
+                            case 484: // Tapping
+                                SDIR = nc.S.v > 0 ? 3 : 4;
+                                if (cld[19] == 1) { // Fixed socket
+                                    cycle.State.CycleNumber = 84;
+                                    cycle.Prms[7] = SDIR; // SDAC
+                                    cycle.Prms[9] = nc.S.v > 0 ? cld[17] : -cld[17]; // PIT
+                                    cycle.Prms[10] = cld[18]; // POSS
+                                    cycle.Prms[14] = 1; // PTAB
+                                } 
+                                else { // Floating socket
+                                    cycle.State.CycleNumber = 840;
+                                    cycle.Prms[7] = 0; // SDR
+                                    cycle.Prms[8] = SDIR; // SDAC
+                                    cycle.Prms[9] = 11; // ENC
+                                    cycle.Prms[11] = nc.S.v > 0 ? cld[17] : -cld[17]; // PIT
+                                    cycle.Prms[13] = 1;
+                                }
+                                break;
+                            case 490: // Thread milling
+                                cycle.State.CycleNumber = 90;
+                                cycle.Prms[6] = cld[16]; // DIATH - Outer diameter
+                                cycle.Prms[7] = cld[16]; // KDIAM - Inner diameter
+                                cycle.Prms[8] = cld[17]; // PIT - thread step
+                                cycle.Prms[9] = cld[10]; // FFR - Work feed
+                                CDIR = cld[19]; // CDIR - Spiral direction
+                                if ((CDIR != 2) && (CDIR != 3)){
+                                    if ((nc.S3.v > 0) && (CDIR == 0))       CDIR = 3;
+                                    else if ((nc.S3.v <= 0) && (CDIR == 0)) CDIR = 2;
+                                    else if ((nc.S3.v > 0) && (CDIR == 1))  CDIR = 2;
+                                    else if ((nc.S3.v <= 0) && (CDIR == 1)) CDIR = 3;
+                                }
+                                cycle.Prms[10] = CDIR;
+                                cycle.Prms[11] = cld[18]; // TYPTH - 0-inner, 1-outer thread
+                                cycle.Prms[12] = CPA;  // CPA - Center X
+                                cycle.Prms[13] = CPO;   // CPO - Center Y
+                                break;
+                            case 491: // Hole pocketing
+                                cycle.State.CycleNumber = 4;
+                                cycle.State.CycleName = "POCKET";
+                                cycle.Prms[5] = 0.5 * cld[16]; // PRAD - Radius
+                                cycle.Prms[6] = CPA; // PA - Center X
+                                cycle.Prms[7] = CPO; // PO - Center Y
+                                cycle.Prms[8] = cld[20]; // MID - Deep step
+                                cycle.Prms[9] = 0; // FAL - finish wall stock
+                                cycle.Prms[10] = 0; // FALD - finish deep stock
+                                cycle.Prms[11] = cld[10]; // FFP1 - Work feed
+                                cycle.Prms[12] = cld[12]; // FFD - Plunge feed
+                                CDIR = cld[19];
+                                if (CDIR <= 1) CDIR = 1 - CDIR;
+                                cycle.Prms[13] = CDIR; // CDIR - Spiral direction
+                                cycle.Prms[14] = 21; // VARI - Rough spiral machining
+                                cycle.Prms[15] = cld[22]; // MIDA - Horizontal step
+                                cycle.Prms[18] = 0.5 * cld[18]; // RAD1 - Spiral radius
+                                cycle.Prms[19] = cld[17]; // DP1 - Spiral step
+                                break;
+                        }
+
+                        break;// 5D Drilling cycles 
+                    
+                    case >= 400 and <=401: //ЦИКЛ ЧЕРНОВОГО ТОЧЕНИЯ И ЧИСТОВОГО ТОЧЕНИЯ
+                        cycle.State.CycleNumber = 95;
+                        cycle.State.ContourN += 1;
+                        cycle.State.CycleGeomName = "BEG_C" + cycle.ContourN.ToString() + ":END_C" + cycle.ContourN.ToString();
+                        cycle.OnCycleGeometry();
+                        nc.Block.Hide(nc.GInterp, nc.F);
+
+                        if(cmd.CycleType == 401){
+                            cycle.Prms[1] = cld[4]; //MID - шаг чернового прохода
+                            cycle.Prms[2] = Abs(cld[7]); // FALZ - чистовой припуск по Z
+                            cycle.Prms[3] = Abs(cld[8]); // FALX - чистовой припуск по X
+                            cycle.Prms[11] = cld[9]; // VRT - отскок от контура после чернового хода
+                        }
+                        cycle.Prms[4] = Abs(cld[13]);   // FAL - эквидистантный припуск для контура
+                        cycle.Prms[5] = nc.F.v;         // FF1 - подача чернового прохода
+                        cycle.Prms[6] = nc.F.v * 0.5;   // FF2 - подача врезания в канавку
+                        cycle.Prms[7] = nc.F.v;         // FF3 - подача чистового прохода
+                        
+                        // Чистовая обработка
+                        if(cmd.CycleType == 400) cycle.Prms[8] = 5; 
+                        else cycle.Prms[12] = cld[12] == 0 ? 1 : 9; // Без чистового прохода, 1-черновая, 2-комлексная
+                        
+                        //Без перебега
+                        if(cld[6] == 0){
+                            cycle.Prms[8] += 200; //С прямым возвратом
+                        }
+                        if(Abs(cld[11]) == 2) cycle.Prms[8] += 2; //Если внутренняя обработка
+                        if(cmd.CycleType == 401 && cld[5] > 0) cycle.Prms[8] += 1; //Если поперечная обработка
+                        break;
+
+                    case 402: //ЦИКЛ ТОЧЕНИЯ НАРУЖНЫХ, ВНУТРЕННИХ И ТОРЦЕВЫХ КАНАВОК
+                        cycle.State.CycleNumber = 93;
+                        cycle.Prms[1] = nc.X.v; // SPD - X начальная
+                        cycle.Prms[2] = nc.Z.v; // SPL - Z начальная
+                        cycle.Prms[3] = Abs(cld[4]); // WIDG - ширина канавки
+                        cycle.Prms[4] = Abs(cld[5]); // DIAG - глубина канавки
+
+                        //Цилиндрическая или торцевая канавка, STA1 - Угол наружный
+                        cycle.Prms[5] = cld[3] == 0 ? 0 : 90;
+                        cycle.Prms[6] = 0; // ANG1
+                        cycle.Prms[7] = 0; // ANG2
+                        cycle.Prms[8] = 0; // RCO1
+                        cycle.Prms[9] = 0; // RCO2
+                        cycle.Prms[10] = 0; // RCI1
+                        cycle.Prms[11] = 0; // RCI2
+                        cycle.Prms[12] = 0; // FAL1
+                        cycle.Prms[13] = 0; // FAL2
+                        cycle.Prms[14] = cld[7]; // IDEP - Шаг вдоль глубины канавки
+                        cycle.Prms[15] = 1; // DTB - Время выдержки
+
+                        if (cld[3] == 0) // Цилиндрическая канавка
+                        {
+                            if(cld[4] > 0){
+                                cycle.Prms[16] = cld[5] > 0 ? 3 : 1; // слева направо, снизу вверх/сверху вниз
+                            }
+
+                            else{
+                                cycle.Prms[16] = cld[5] > 0 ? 7 : 5; // справа налево, снизу вверх/сверху вниз
+                            }
+                        }  
+
+                        else // Торцевая канавка
+                        {
+                            if(cld[4] > 0){
+                                cycle.Prms[16] = cld[5] > 0 ? 4 : 8; // снизу вверх, слева направо/справа налево, 
+                            }
+
+                            else{
+                                cycle.Prms[16] = cld[5] > 0 ? 2 : 6; // сверху вниз, слева направо/справа налево, 
+                            }
+                        }  
+
+                        break;
+
+                    case 403: // ЦИКЛ НАРЕЗАНИЯ РЕЗЬБЫ
+                        cycle.State.CycleNumber = 97;
+                        nc.Block.Hide(nc.GInterp, nc.F);
+                        cycle.Prms[1] = cld[23]; // PIT - шаг резьбы
+                        cycle.Prms[3] = cld[10]; // SPL - Z начальной точки
+                        cycle.Prms[4] = cld[12]; // FPL - Z конечной точки
+                        cycle.Prms[5] = (cld[11] + cld[18] ) * 2; // DM1 - X начальной точки
+                        cycle.Prms[6] = (cld[13] + cld[18] ) * 2; // DM2 - X конечной точки
+                        cycle.Prms[9] = cld[18]; // TDEP - Глубина резьбы
+                        cycle.Prms[10] = cld[29]; // FAL - Припуск чистовой
+                        cycle.Prms[11] = cld[20]; // IANG - Угол между вертикалью и кромкой витка
+                        if (cld[24] == 2) cycle.Prms[11] *= -1; // Попеременно вдоль двух граней
+                        cycle.Prms[12] = 0;       // NSP - угол начала первого витка
+                        cycle.Prms[13] = cld[28]; // NRC - количество черновых проходов
+                        cycle.Prms[14] = cld[30]; // NID - количество "выглаживаний"
+
+                        // VARI - стратегия врезания
+                        if (cld[4] == 1) cycle.Prms[15] = cld[25] > 0 ? 2 : 4; // Внутрення резьба
+                        else cycle.Prms[15] = cld[25] > 0 ? 1 : 3; // Наружная резьба
+
+                        cycle.Prms[16] = cld[21]; // NUMT - количество заходов (для многозаходной резьбы)
+                        cycle.Prms[17] = cld[14]; // VRT - отскок от резьбы по X для перехода в начальную точку
+                        break;
+
+                    case 163:
+                    case 81: // G81
+                        if(cmd.CycleType == 163){
+                            cycle.State.CycleNumber = 81;
+                        }
+                        else{
+                            cycle.State.CycleNumber = 82;
+                            cycle.Prms[6] = cld[7]; // DTB - выдержка на нижнем уровне
+                        }
+
+                        cycle.Prms[1] = cld[6]; // RTP - плоскость отвода
+                        cycle.Prms[2] = cld[5]; // RFP - базовая пл-ть (абсол)
+                        cycle.Prms[3] = cld[5]-cld[3]; // SDIS - безопасное расстояние
+                        cycle.Prms[5] = cld[4]; // DPR - глубина сверления
+                        break;
+                    
+                    case 153:
+                    case 288: // ЦИКЛ СВЕРЛЕНИЯ ГЛУБОКИХ ОТВЕРСТИЙ G83
+                        cycle.State.CycleNumber = 83;
+                        cycle.Prms[1] = cld[6];         // RTP - плоскость отвода
+                        cycle.Prms[2] = cld[5];          // RFP - базовая пл-ть (абсол)
+                        cycle.Prms[3] = cld[5] - cld[3];  // SDIS - безопасное расстояние
+                        cycle.Prms[5] = cld[4];            // DPR - глубина сверления
+                        cycle.Prms[6] = cld[3] - cld[11];  // FDEP - глубина первого шага сверления инкр
+                        cycle.Prms[8] = cld[14];          // DAM - дегрессия
+                        cycle.Prms[9] = cld[7];          // DTB - пауза для ломки стружки
+                        cycle.Prms[10] = 0;            // DTS - пауза наверху
+
+                        // VARI - ломка/удаление стружки
+                        cycle.Prms[12] = cmd.CycleType == 288 ? 0 : 1;
+                        break;
+
+                    case 168: // ЦИКЛ НАРЕЗАНИЯ РЕЗЬБЫ ОСЕВЫМ ИНСТРУМЕНТОМ G84/G184
+                        cycle.State.CycleNumber = 84;
+                        cycle.Prms[1] = cld[6]; //         RTP - плоскость отвода
+                        cycle.Prms[2] = cld[5]; //         RFP - базовая пл-ть (абсол)
+                        cycle.Prms[3] = cld[5]-cld[3]; //  SDIS - безопасное расстояние
+                        cycle.Prms[5] = cld[4]; //         DPR - глубина сверления
+
+                        // SDAC - направление вращения шпинделя после цикла
+                        // SST - обороты шпинделя
+                        if (activeLatheSpindle == 1) 
+                        {                            
+                            cycle.Prms[7] = Abs(nc.MSp.v);
+                            cycle.Prms[11] = nc.S.v;
+                        }
+                        
+                        else
+                        {
+                            cycle.Prms[7] = Abs(nc.MSp2.v);
+                            cycle.Prms[11] = nc.S2.v;                              
+                        }
+                        break;
+                }
+
+                if(cycle.CycleNumber > 0){
+                    nc.Block.Out();
+                    //cycle.OutCycle(CycleName+Str(CycleNumber), CycleGeomName)
+                    if(cycle.IsCycleGeometry) // Цикл с геометрией контура
+                    {
+                        //NCSub.Output(CLD[3]) ! Выводим геометрию
+                        cycle.OffCycleGeometry();
+                        nc.GInterp.Hide(99999);
+                    }
+                }
+
+            } //else if CALL end
         }
 
         public override void OnGoHome(ICLDGoHomeCommand cmd, CLDArray cld)
         {
-            /*if(cycleIsOn)
+            if(cycle.CycleOn)
             {
-                cycleIsOn = false;
-                //Cycle = 80
-            }*/
+                cycle.OffCycle();
+            }
 
             nc.GInterp.v = 0;
             nc.X.v = FromP_.X;
@@ -780,7 +1168,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnInterpolation(ICLDInterpolationCommand cmd, CLDArray cld)
         {
-            base.OnInterpolation(cmd, cld);//904
+            base.OnInterpolation(cmd, cld); //904
         }
 
         public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
@@ -794,6 +1182,7 @@ namespace SprutTechnology.SCPostprocessor
         public override void OnPartNo(ICLDPartNoCommand cmd, CLDArray cld)
         {
             base.OnPartNo(cmd, cld);
+            //startproj
         }
 
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
@@ -805,7 +1194,7 @@ namespace SprutTechnology.SCPostprocessor
         {
             nc.GInterp.Show(33);
             nc.F.Show(cmd.ValueAsDouble);
-            nc.ThreadStartAngle.v = cmd.StartAngle; //Spindle orientation for multiple threads
+            nc.ThreadStartAngle.v = cmd.StartAngle; //Ориентация шпинделя при многозаходной резьбе
             if(cmd.StartAngle == 0) nc.ThreadStartAngle.v0 = nc.ThreadStartAngle.v;
         }
 
@@ -829,4 +1218,5 @@ namespace SprutTechnology.SCPostprocessor
         }
 
     }
+
 }

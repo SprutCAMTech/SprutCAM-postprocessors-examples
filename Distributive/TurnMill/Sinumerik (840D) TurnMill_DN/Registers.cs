@@ -97,13 +97,13 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>M25, M026 - auxiliary M codes</summary>
         public NumericNCWord MChuck2 = new NumericNCWord("M2={##}", 0);
         ///<summary>M03, M04, M05 - spindle switch on-off code</summary>
-        public NumericNCWord MSp = new NumericNCWord("M{##}", 0);
+        public NumericNCWord MSp = new NumericNCWord("M{##}", 5);
         ///<summary></summary>
         public NumericNCWord MSp2 = new NumericNCWord("M2={##}", 0);
         ///<summary></summary>
         public NumericNCWord MSp3 = new NumericNCWord("M3={##}", 0);
         ///<summary>M08, M09 - coolant switch on-off codes</summary>
-        public NumericNCWord MCoolant = new NumericNCWord("M{##}", 0);
+        public NumericNCWord MCoolant = new NumericNCWord("M{##}", 9);
         ///<summary>M10, M11 - axis C brake switch on-off codes</summary>
         public NumericNCWord MTorm = new NumericNCWord("M{##}", 0);
         ///<summary>M10, M11 - axis C2 brake switch on-off codes</summary>

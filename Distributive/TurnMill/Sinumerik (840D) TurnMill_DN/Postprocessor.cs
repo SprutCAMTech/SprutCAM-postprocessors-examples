@@ -14,6 +14,8 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>Main nc-programm number</summary>
         public int ProgNumber {get; set;}
 
+        public string ProgName;
+
         public double LastC = 99999;
 
         public override void OnInit()
@@ -34,6 +36,18 @@ namespace SprutTechnology.SCPostprocessor
             }
             WriteLine(outS);
         }
+
+        public void WriteLineWithBlockN(string line)
+        {
+            if (String.IsNullOrEmpty(line))
+                return;
+            if (BlockN.Disabled)
+                WriteLine(line);
+            else {
+                WriteLine(BlockN.ToString() + Block.WordsSeparator + line);
+                BlockN.v += BlockN.AutoIncrementStep;
+            }
+        }
     }
 
     public partial class Postprocessor: TPostprocessor
@@ -42,17 +56,18 @@ namespace SprutTechnology.SCPostprocessor
 
         ///<summary>Current nc-file. It could be main or sub.</summary>
         public NCFile nc;
+        public NCFile main;
 
         private CycleSinumerik840D cycle;
 
         ///<summary>X axis scale coefficient (1 - radial, 2 - diametral)</summary>
-        double xScale = 1.0;
+        double xScale = 2.0;
 
         ///<summary>Type of current operation (mill, lathe, etc.)</summary>
         OpType currentOperationType = OpType.Unknown;
 
         ///<summary>Type of active lathe spindle (main, counter)</summary>
-        int activeLatheSpindle;
+        int activeLatheSpindle = 1;
 
         double IsFirstC = 1;
 
@@ -71,7 +86,7 @@ namespace SprutTechnology.SCPostprocessor
         double PPFunFeed;
 
         #endregion
-
+        
         void PrintAllTools()
         {
             SortedList tools = new SortedList();
@@ -90,9 +105,31 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
+        public void RenameSubs(){
+            var s = nc.ProgName;
+            s = Replace(s, " ", "_");
+            for (int i=0; i<CLDProject.CLDSub.SubCount; i++) {
+                var sub = CLDProject.CLDSub.GetSubByIndex(i);
+                //"%_N_"+NCName$+"_SUB" + str(k) +"_MPF"
+                sub.Name = "%_N_" + s + "_SUB" + sub.SubCode + "_MPF";
+            }
+        }
+
         public override void OnStartProject(ICLDProject prj)
         {
-            nc = new NCFile();
+            // nc = new NCFile();
+            // cycle = new CycleSinumerik840D(this, nc);
+            
+            // nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
+            // nc.ProgNumber = Settings.Params.Int["OutFiles.NCProgNumber"];
+            
+            main = new NCFile();
+            //main.OutputFileName = Path.ChangeExtension(Settings.Params.Str["OutFiles.NCFileName"], ".mpf");
+            main.ProgName = Settings.Params.Str["OutFiles.NCProgName"];
+            if(String.IsNullOrEmpty(main.ProgName))
+                main.ProgName = Path.GetFileNameWithoutExtension(main.OutputFileName);
+            nc = main; 
+
             cycle = new CycleSinumerik840D(this, nc);
             
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
@@ -783,7 +820,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnExtCycle(ICLDExtCycleCommand cmd, CLDArray cld)
         {
-            #region Cycle variables
+            #region ExtCycle variables
 
             int CDIR;              // Thread direction 2-G2, 3-G3
             double SDIR;           // Spindle rotation direction
@@ -1138,7 +1175,10 @@ namespace SprutTechnology.SCPostprocessor
 
                 if(cycle.CycleNumber > 0){
                     nc.Block.Out();
+
                     //cycle.OutCycle(CycleName+Str(CycleNumber), CycleGeomName)
+                    cycle.OutCyle(cycle.CycleName + Str(cycle.CycleNumber));
+
                     if(cycle.IsCycleGeometry) // Цикл с геометрией контура
                     {
                         //NCSub.Output(CLD[3]) ! Выводим геометрию

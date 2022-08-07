@@ -193,7 +193,7 @@ namespace SprutTechnology.SCPostprocessor
             E1_E6(3, cmd);
 
             Mode_prev_MOVE = 2;
-            CheckNextMov();
+            CheckNextMov(cmd);
             if (NextMOV == 1)
             {
                 Output_C_L("L");
@@ -220,7 +220,7 @@ namespace SprutTechnology.SCPostprocessor
             CurRx = cld[4]; CurRy = cld[5]; CurRz = cld[6];
 
             ConfigPosition(cmd, "MachineStateFlags");
-            CheckNextMov();
+            CheckNextMov(cmd);
             num_POINT = num_POINT + 1;
             ChangeX_RzPrevOnMax();
 
@@ -589,22 +589,22 @@ namespace SprutTechnology.SCPostprocessor
                 ResetSection(i);
             }
         }
-        public void CheckNextMov()
+        public void CheckNextMov(ICLDCommand cmd)
         {
             int fi, i;
             fi = CurrentFile.Index;
             i = CurrentCmd.Index + 2;
-            while (CLDProject.CLDFiles[fi].Cmd[i].Caption == "multigoto" ||
-                CLDProject.CLDFiles[fi].Cmd[i].Caption == "multiarc" ||
-                CLDProject.CLDFiles[fi].Cmd[i].Caption == "physicgoto" ||
+            while (cmd.CmdType==CLDCmdType.MultiGoto ||
+                cmd.CmdType==CLDCmdType.MultiArc ||
+                cmd.CmdType==CLDCmdType.PhysicGoto ||
                 i >= CLDProject.CLDFiles[fi].CmdCount)
             {
                 i += 1;
             }
 
-            if (CLDProject.CLDFiles[fi].Cmd[i].Caption == "physicgoto") NextMOV = 0;
-            else if (CLDProject.CLDFiles[fi].Cmd[i].Caption == "multigoto") NextMOV = 1;
-            else if (CLDProject.CLDFiles[fi].Cmd[i].Caption == "multiarc") NextMOV = 2;
+            if (cmd.CmdType==CLDCmdType.PhysicGoto) NextMOV = 0;
+            else if (cmd.CmdType==CLDCmdType.MultiGoto) NextMOV = 1;
+            else if (cmd.CmdType==CLDCmdType.MultiArc) NextMOV = 2;
             else if (i >= CLDProject.CLDFiles[fi].CmdCount) NextMOV = 10;
         }
         public void Output_C_L(string letter){

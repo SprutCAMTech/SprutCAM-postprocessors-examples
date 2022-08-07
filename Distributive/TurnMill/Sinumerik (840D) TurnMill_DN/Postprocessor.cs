@@ -85,6 +85,9 @@ namespace SprutTechnology.SCPostprocessor
 
         double PPFunFeed;
 
+        double csC;
+        double snC;
+
         #endregion
         
         void PrintAllTools()
@@ -117,14 +120,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartProject(ICLDProject prj)
         {
-            // nc = new NCFile();
-            // cycle = new CycleSinumerik840D(this, nc);
-            
-            // nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
-            // nc.ProgNumber = Settings.Params.Int["OutFiles.NCProgNumber"];
-            
             main = new NCFile();
-            //main.OutputFileName = Path.ChangeExtension(Settings.Params.Str["OutFiles.NCFileName"], ".mpf");
             main.ProgName = Settings.Params.Str["OutFiles.NCProgName"];
             if(String.IsNullOrEmpty(main.ProgName))
                 main.ProgName = Path.GetFileNameWithoutExtension(main.OutputFileName);
@@ -188,12 +184,6 @@ namespace SprutTechnology.SCPostprocessor
             else Debug.Write("Unknown coordinate system");
         }
 
-        //ORIGIN's part
-        public override void OnWorkpieceCS(ICLDOriginCommand cmd, CLDArray cld)
-        {
-            base.OnWorkpieceCS(cmd, cld);
-        }
-        
         // GPlane, Переключение рабочих плоскостей (XY, XZ, YZ)
         private double ChangeGPlane(double cld14) => cld14 switch
         {
@@ -255,8 +245,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.Y.Hide();
             nc.Z.Hide();
 
-            //FROMX_ = X
-            //XT_ = X
             FromP_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
             PT_ = new TInp3DPoint(nc.X.v,nc.Y.v,nc.Z.v);
         }
@@ -497,8 +485,8 @@ namespace SprutTechnology.SCPostprocessor
             if (nc.GInterp.v == 33) nc.Block.Show(nc.GInterp);
             if (nc.GPolarOrCyl.v == 1)
             {
-                nc.X.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
-                nc.Y.v = cmd.EP.Y * Cos(nc.RotC.v) + cmd.EP.X * Sin(nc.RotC.v);
+                nc.X.v = cmd.EP.X * csC - cmd.EP.Y * snC;
+                nc.Y.v = cmd.EP.Y * csC + cmd.EP.X * snC;
             }
 
             else
@@ -546,8 +534,8 @@ namespace SprutTechnology.SCPostprocessor
 
             if (nc.GPolarOrCyl.v == 1)
             {
-                nc.X.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
-                nc.Y.v = cmd.EP.Y * Cos(nc.RotC.v) + cmd.EP.X * Sin(nc.RotC.v);
+                nc.X.v = cmd.EP.X * csC - cmd.EP.Y * snC;
+                nc.Y.v = cmd.EP.Y * csC + cmd.EP.X * snC;
             }
 
             else
@@ -597,7 +585,7 @@ namespace SprutTechnology.SCPostprocessor
 
             if(Abs(nc.GPlane.v) != 19){
                 if(nc.GPolarOrCyl.v == 1){
-                    nc.XC_.v = cmd.EP.X * Cos(nc.RotC.v) - cmd.EP.Y * Sin(nc.RotC.v);
+                    nc.XC_.v = cmd.EP.X * csC - cmd.EP.Y * snC;
                 }
                 else nc.XC_.v = cmd.EP.X * xScale;
                 nc.XC_.Show();
@@ -605,7 +593,7 @@ namespace SprutTechnology.SCPostprocessor
 
             if(Abs(nc.GPlane.v) != 18){
                 if(nc.GPolarOrCyl.v == 1){
-                    nc.YC_.v = cmd.EP.Y * Cos(nc.RotC.v) - cmd.EP.X * Sin(nc.RotC.v);
+                    nc.YC_.v = cmd.EP.Y * csC - cmd.EP.X * snC;
                 }
                 else nc.YC_.v = cmd.EP.Y;
                 nc.YC_.Show();
@@ -1208,7 +1196,66 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnInterpolation(ICLDInterpolationCommand cmd, CLDArray cld)
         {
-            base.OnInterpolation(cmd, cld); //904
+            if (cmd.InterpType == 9021) //Polar
+            {
+                if (cmd.IsOn){ // switch on
+                    nc.Block.Out();
+
+                    if (activeLatheSpindle == 1){
+                        nc.WriteLine("TRANSMIT(1)"); //call SafeOut ?!
+                        nc.WriteLine("DIAMOF");
+                        csC = Cos(nc.C.v);
+                        snC = -Sin(nc.RotC.v);
+                    }
+
+                    else{
+                        nc.WriteLine("TRANSMIT(2)");
+                        nc.WriteLine("DIAMOF");
+                        csC = Cos(nc.C2.v);
+                        snC = -Sin(nc.C2.v);
+                    }
+
+                    PolarInterp = 1;
+                    xScale = 1; // ?!
+                }
+
+                else
+                {
+                    nc.Block.Out();
+                    nc.WriteLine($"TRAFOOF");
+                    nc.WriteLine($"DIAMON");
+                    PolarInterp = 0;
+                    xScale 2;
+                    if (activeLatheSpindle == 1){
+                        nc.C.Hide(99999);
+                    }
+                    else{
+                        nc.C2.Hide(99999);
+                    }
+                } 
+            }
+
+            else if (cmd.InterpType == 9022)
+            {
+                if (cmd.IsOn)
+                {
+                    nc.Block.Out();
+                    if (activeLatheSpindle == 1){
+                        nc.WriteLine($"TRCON({Str(2*cmd.CylRadius)})");
+                    }
+                    else{
+                        nc.WriteLine($"TRC2ON({Str(2*cmd.CylRadius)})");
+                    }
+                }
+
+                else
+                {
+                    nc.Block.Out();
+                    nc.WriteLineWithBlockN("TMCOFF");
+                    nc.C.Hide(99999);
+                }
+                
+            }
         }
 
         public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)

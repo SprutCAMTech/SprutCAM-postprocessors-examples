@@ -155,7 +155,7 @@ namespace SprutTechnology.SCPostprocessor
                        nc.C.ToString() + ",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + nc.E1.ToString() + 
                        ",E2 " + nc.E2.ToString() + ",E3 " + nc.E3.ToString() + ",E4 " + nc.E4.ToString() + ",E5 " + nc.E5.ToString() + 
                        ",E6 " + nc.E6.ToString() + "}");
-            SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS+1.ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
+            SectOutput(block_dat1, "DECL FDAT FP" + (Num_E6POS + 1).ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
                        nc.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] "+ "34" + "XP" + Num_E6POS.ToString() + "34" +",TQ_STATE FALSE}");
             SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL " + nc.VEL_CP.ToString() + ",ACC " + 
                        (ACC_CP * 100 / DEF_ACC).ToString() + ",APO_DIST " + APO_CDIS.ToString() + ".000,APO_FAC 50.0000,AXIS_VEL " + 

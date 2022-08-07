@@ -159,8 +159,6 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine("O" + Str(nc.ProgNumber));
 
             PrintAllTools();
-            
-            PPFunFeed = cmd.Flt["PPFun(TechInfo).Operation(1).ConditionsSection.Feeds.WorkFeed.Value.ValuePerMinut"];
         }
 
         public override void OnFinishProject(ICLDProject prj)

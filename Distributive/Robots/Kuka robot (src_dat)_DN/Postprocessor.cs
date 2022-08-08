@@ -15,27 +15,22 @@ namespace SprutTechnology.SCPostprocessor
                E1_prev, E2_prev, E3_prev, E4_prev, E5_prev, E6_prev;
 
         int Num_E6POS, Num_E6AXIS, Num_CPDAT, Num_PPDAT, MAX_num_line, Current_num_file, big_small_file, mid_end, State, Turn, 
-            block_src1, block_src2, block_dat1, block_dat2, PTP_main_axes, Vel_PTP, Acc_PTP, APO_CDIS, APO_CPT, WorkpieceHolder;
+            block_src1, block_dat1, PTP_main_axes, Vel_PTP, Acc_PTP, APO_CDIS, APO_CPT, WorkpieceHolder;
 
         string Current_NAME_file, outstr;
 
-        int[] SectLen = new int[6] { 0, 0, 0, 0, 0, 0 };
         int[] AIndex = new int[6] { 0, 1, 2, 3, 4, 5 };
 
-        string[] Sect1 = new string[1000];
-        string[] Sect2 = new string[1000];
-        string[] Sect3 = new string[1000];
-        string[] Sect4 = new string[1000];
-
-        ///<summary>Current nc-file</summary>
-        NCFile nc;
+        ///<summary>Current src-file</summary>
+        NCFile src;
+        ///<summary>Current dat-file</summary>
+        NCFile dat;
  
         #endregion
 
         public override void OnStartProject(ICLDProject prj)
         {
-            nc = new NCFile();
-            nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
+
         }
 
         public override void OnFinishProject(ICLDProject prj)
@@ -50,7 +45,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            nc.WriteLine();
+            src.WriteLine();
         }
 
         public override void StopOnCLData() 
@@ -60,10 +55,10 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
         {
-            nc.VEL_CP.v = cld[1] / 1000;
-            nc.VEL_CP.v = nc.VEL_CP.v / 60;
-            outstr = nc.VEL_CP.ToString();
-            if (outstr.Length > 0) SectOutput(block_src1, outstr+"; m/sec; " + (nc.VEL_CP.v * 60 * 1000).ToString() + " mm/min");
+            src.VEL_CP.v = cld[1] / 1000;
+            src.VEL_CP.v = Round(src.VEL_CP.v / 60, 3);
+            outstr = src.VEL_CP.ToString();
+            if (outstr.Length > 0) SectOutput(block_src1, outstr+"; m/sec; " + Str(src.VEL_CP.v * 60 * 1000) + " mm/min");
         }
 
         public override void OnFini(ICLDFiniCommand cmd, CLDArray cld)
@@ -72,52 +67,50 @@ namespace SprutTechnology.SCPostprocessor
             // ChangeNcFile Current_NAME_file + ".src"
             SectOutput(block_src1, "END");
             head_src();
-            OutSection(block_src1);
 
             // ---.DAT----
             // ChangeNcFile Current_NAME_file + ".dat"
             SectOutput(block_dat1, "ENDDAT");
             head_dat();
-            OutSection(block_dat1);
         }
 
         public override void OnFrom(ICLDFromCommand cmd, CLDArray cld)
         {
             A1_A6(11, cld[10], cld);
-            nc.A1.v0 = nc.A1;
-            nc.A2.v0 = nc.A2;
-            nc.A3.v0 = nc.A3;
-            nc.A4.v0 = nc.A4;
-            nc.A5.v0 = nc.A5;
-            nc.A6.v0 = nc.A6;
+            src.A1.v0 = src.A1;
+            src.A2.v0 = src.A2;
+            src.A3.v0 = src.A3;
+            src.A4.v0 = src.A4;
+            src.A5.v0 = src.A5;
+            src.A6.v0 = src.A6;
 
             Ext_Axis(cmd);
-            nc.E1.v0 = nc.E1;
-            nc.E2.v0 = nc.E2;
-            nc.E3.v0 = nc.E3;
-            nc.E4.v0 = nc.E4;
-            nc.E5.v0 = nc.E5;
-            nc.E6.v0 = nc.E6;
+            src.E1.v0 = src.E1;
+            src.E2.v0 = src.E2;
+            src.E3.v0 = src.E3;
+            src.E4.v0 = src.E4;
+            src.E5.v0 = src.E5;
+            src.E6.v0 = src.E6;
         }
 
         public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
         {
             if (WorkpieceHolder == 0)
             {
-                nc.TOOL_DATA.v = cmd.Number;
-                if (nc.TOOL_DATA.v != nc.TOOL_DATA.v0)
+                src.TOOL_DATA.v = cmd.Number;
+                if (src.TOOL_DATA.v != src.TOOL_DATA.v0)
                 {
-                    if (nc.TOOL_DATA.v == 0)
+                    if (src.TOOL_DATA.v == 0)
                     {
-                        nc.Output("$TOOL = $NULLFRAME");
-                        nc.TOOL_DATA.v = 0;
-                        nc.TOOL_DATA.v0 = 0;
+                        src.Output("$TOOL = $NULLFRAME");
+                        src.TOOL_DATA.v = 0;
+                        src.TOOL_DATA.v0 = 0;
                     }
                     else
                     {
-                        SectOutput(block_src1, "$ACT_TOOL=" + nc.TOOL_DATA.ToString());
-                        SectOutput(block_src1, "$TOOL=TOOL_DATA[" + nc.TOOL_DATA.ToString() + "]");
-                        SectOutput(block_src1, "$LOAD=LOAD_DATA[" + nc.TOOL_DATA.ToString() + "]");
+                        SectOutput(block_src1, "$ACT_TOOL=" + src.TOOL_DATA.ToString());
+                        SectOutput(block_src1, "$TOOL=TOOL_DATA[" + src.TOOL_DATA.ToString() + "]");
+                        SectOutput(block_src1, "$LOAD=LOAD_DATA[" + src.TOOL_DATA.ToString() + "]");
                     }
                 }
             }
@@ -130,46 +123,46 @@ namespace SprutTechnology.SCPostprocessor
             Num_E6POS = Num_E6POS + 1;
 
             //------------MID-DAT----------------
-            nc.X.v = cld[8];  nc.Y.v = cld[9];  nc.Z.v = cld[10];
-            nc.A.v = cld[11]; nc.B.v = cld[12]; nc.C.v = cld[13];
+            src.X.v = cld[8];  src.Y.v = cld[9];  src.Z.v = cld[10];
+            src.A.v = cld[11]; src.B.v = cld[12]; src.C.v = cld[13];
             RoundXYZABC();
             mid_end = 1;
  
             Point_Position("MidPos.MachineStateFlags","circ1", cmd);
             Ext_Axis(cmd);
-            SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + nc.X.ToString() + ",Y " + 
-                       nc.Y.ToString() + ",Z " + nc.Z.ToString() + ",A "+ nc.A.ToString() + ",B " + nc.B.ToString() +",C " + 
-                       nc.C.ToString() +",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + nc.E1.ToString() + ",E2 " + 
-                       nc.E2.ToString() + ",E3 " + nc.E3.ToString() + ",E4 " + nc.E4.ToString() + ",E5 " + nc.E5.ToString() + ",E6 " + 
-                       nc.E6.ToString() + "}");
+            SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + src.X.ToString() + ",Y " + 
+                       src.Y.ToString() + ",Z " + src.Z.ToString() + ",A "+ src.A.ToString() + ",B " + src.B.ToString() +",C " + 
+                       src.C.ToString() +",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + src.E1.ToString() + ",E2 " + 
+                       src.E2.ToString() + ",E3 " + src.E3.ToString() + ",E4 " + src.E4.ToString() + ",E5 " + src.E5.ToString() + ",E6 " + 
+                       src.E6.ToString() + "}");
             //------------END-DAT----------------
-            nc.X.v = cld[1];  nc.Y.v = cld[2];  nc.Z.v = cld[3];
-            nc.A.v = cld[4]; nc.B.v = cld[5]; nc.C.v = cld[6];
+            src.X.v = cld[1];  src.Y.v = cld[2];  src.Z.v = cld[3];
+            src.A.v = cld[4]; src.B.v = cld[5]; src.C.v = cld[6];
             RoundXYZABC();
             mid_end = 2;
             Point_Position("EndPos.MachineStateFlags","circ2", cmd);
             Ext_Axis(cmd);
 
-            SectOutput(block_dat1, "DECL E6POS XP" + (Num_E6POS+1).ToString() + "={X " + nc.X.ToString() + ",Y " + 
-                       nc.Y.ToString() + ",Z " + nc.Z.ToString() + ",A "+ nc.A.ToString() + ",B " + nc.B.ToString() + ",C " + 
-                       nc.C.ToString() + ",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + nc.E1.ToString() + 
-                       ",E2 " + nc.E2.ToString() + ",E3 " + nc.E3.ToString() + ",E4 " + nc.E4.ToString() + ",E5 " + nc.E5.ToString() + 
-                       ",E6 " + nc.E6.ToString() + "}");
-            SectOutput(block_dat1, "DECL FDAT FP" + (Num_E6POS + 1).ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
-                       nc.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] "+ "34" + "XP" + Num_E6POS.ToString() + "34" +",TQ_STATE FALSE}");
-            SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL " + nc.VEL_CP.ToString() + ",ACC " + 
+            SectOutput(block_dat1, "DECL E6POS XP" + (Num_E6POS+1).ToString() + "={X " + src.X.ToString() + ",Y " + 
+                       src.Y.ToString() + ",Z " + src.Z.ToString() + ",A "+ src.A.ToString() + ",B " + src.B.ToString() + ",C " + 
+                       src.C.ToString() + ",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + src.E1.ToString() + 
+                       ",E2 " + src.E2.ToString() + ",E3 " + src.E3.ToString() + ",E4 " + src.E4.ToString() + ",E5 " + src.E5.ToString() + 
+                       ",E6 " + src.E6.ToString() + "}");
+            SectOutput(block_dat1, "DECL FDAT FP" + (Num_E6POS + 1).ToString() + "={TOOL_NO " + Str(src.TOOL_DATA) + ",BASE_NO " + 
+                       Str(src.BASE_DATA) + ",IPO_FRAME #BASE,POINT2[] "+ "34" + "XP" + Num_E6POS.ToString() + "34" +",TQ_STATE FALSE}");
+            SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL " + Str(src.VEL_CP.v) + ",ACC " + 
                        (ACC_CP * 100 / DEF_ACC).ToString() + ",APO_DIST " + APO_CDIS.ToString() + ".000,APO_FAC 50.0000,AXIS_VEL " + 
                        Vel_PTP.ToString() + ".000,AXIS_ACC " + Acc_PTP.ToString() + ".000,ORI_TYP #VAR,CIRC_TYP #BASE,JERK_FAC 50.0000,GEAR_JERK 50.0000,EXAX_IGN 0}");
             SectOutput(block_dat1, "");
             //-------------SRC----------------
-            SectOutput(block_src1, ";FOLD CIRC P" + Num_E6POS.ToString() + " P" + (Num_E6POS+1).ToString() + " CONT Vel=" + nc.VEL_CP.ToString() + 
-                       " m/s CPDAT" + Num_CPDAT.ToString() + " Tool[" + nc.TOOL_DATA.ToString() + "]:Tool_main Base[" + nc.BASE_DATA.ToString() + 
+            SectOutput(block_src1, ";FOLD CIRC P" + Num_E6POS.ToString() + " P" + (Num_E6POS+1).ToString() + " CONT Vel=" + Str(src.VEL_CP.v) + 
+                       " m/s CPDAT" + Num_CPDAT.ToString() + " Tool[" + Str(src.TOOL_DATA) + "]:Tool_main Base[" + Str(src.BASE_DATA) + 
                        "]:Base_main;%{PE}%R 8.3.40,%MKUKATPBASIS,%CMOVE,%VCIRC, %P 1:CIRC, 2:P" + Num_E6POS.ToString() + ", 3:P" + 
-                       (Num_E6POS+1).ToString() + ", 4:C_DIS C_DIS, 6:" + nc.VEL_CP.ToString() + ", 8:CPDAT" + Num_CPDAT.ToString());
+                       (Num_E6POS+1).ToString() + ", 4:C_DIS C_DIS, 6:" + Str(src.VEL_CP.v) + ", 8:CPDAT" + Num_CPDAT.ToString());
             SectOutput(block_src1, "$BWDSTART=FALSE");
             SectOutput(block_src1, "LDAT_ACT=LCPDAT" + Num_CPDAT.ToString());
             SectOutput(block_src1, "FDAT_ACT=FP" + (Num_E6POS+1).ToString());
-            SectOutput(block_src1, "BAS(#CP_PARAMS," + nc.VEL_CP.ToString() + ")");
+            SectOutput(block_src1, "BAS(#CP_PARAMS," + Str(src.VEL_CP.v) + ")");
             SectOutput(block_src1, "CIRC XP" + Num_E6POS.ToString() + ", XP" + (Num_E6POS+1).ToString() + " C_DIS C_DIS");
             SectOutput(block_src1, ";ENDFOLD");
             SectOutput(block_src1, "");
@@ -177,8 +170,8 @@ namespace SprutTechnology.SCPostprocessor
 
             Num_E6POS = Num_E6POS + 1;
 
-            X_prev = nc.X.v; Y_prev = nc.Y.v; Z_prev = nc.Z.v; A_prev = nc.A.v; B_prev = nc.B.v; C_prev = nc.C.v;
-            E1_prev = nc.E1.v; E2_prev = nc.E2.v; E3_prev = nc.E3.v; E4_prev = nc.E4.v; E5_prev = nc.E5.v; E6_prev = nc.E6.v;
+            X_prev = src.X.v; Y_prev = src.Y.v; Z_prev = src.Z.v; A_prev = src.A.v; B_prev = src.B.v; C_prev = src.C.v;
+            E1_prev = src.E1.v; E2_prev = src.E2.v; E3_prev = src.E3.v; E4_prev = src.E4.v; E5_prev = src.E5.v; E6_prev = src.E6.v;
 
             if (Num_CPDAT >= MAX_num_line)
             {
@@ -186,60 +179,58 @@ namespace SprutTechnology.SCPostprocessor
                 // ChangeNcFile Current_NAME_file + ".src"
                 SectOutput(block_src1, "END");
                 head_src();
-                OutSection(block_src1);
                 //---.DAT----
                 //ChangeNcFile Current_NAME_file + ".dat"
                 SectOutput(block_dat1, "ENDDAT");
                 head_dat();
-                OutSection(block_dat1);
             }  
         }
 
         public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
         {
-            nc.X.v = cld[1];  nc.Y.v = cld[2];  nc.Z.v = cld[3];
-            nc.A.v = cld[4]; nc.B.v = cld[5]; nc.C.v = cld[6];
+            src.X.v = cld[1];  src.Y.v = cld[2];  src.Z.v = cld[3];
+            src.A.v = cld[4]; src.B.v = cld[5]; src.C.v = cld[6];
             Point_Position("MachineStateFlags","line", cmd);
             
             RoundXYZABC();
             Ext_Axis(cmd);
 
-            if (Math.Abs(nc.X.v - X_prev) > 0.001 || Math.Abs(nc.Y.v - Y_prev) > 0.001 || Math.Abs(nc.Z.v - Z_prev) > 0.001 || 
-                Math.Abs(nc.A.v - A_prev) > 0.001 || Math.Abs(nc.B.v - B_prev) > 0.001 || Math.Abs(nc.C.v - C_prev) > 0.001 || 
-                Math.Abs(nc.E1.v - E1_prev) > 0.001 || Math.Abs(nc.E2.v - E2_prev) > 0.001 || Math.Abs(nc.E3.v - E3_prev) > 0.001 || 
-                Math.Abs(nc.E4.v - E4_prev) > 0.001 || Math.Abs(nc.E5.v - E5_prev) > 0.001 || Math.Abs(nc.E6.v - E6_prev) > 0.001)
+            if (Math.Abs(src.X.v - X_prev) > 0.001 || Math.Abs(src.Y.v - Y_prev) > 0.001 || Math.Abs(src.Z.v - Z_prev) > 0.001 || 
+                Math.Abs(src.A.v - A_prev) > 0.001 || Math.Abs(src.B.v - B_prev) > 0.001 || Math.Abs(src.C.v - C_prev) > 0.001 || 
+                Math.Abs(src.E1.v - E1_prev) > 0.001 || Math.Abs(src.E2.v - E2_prev) > 0.001 || Math.Abs(src.E3.v - E3_prev) > 0.001 || 
+                Math.Abs(src.E4.v - E4_prev) > 0.001 || Math.Abs(src.E5.v - E5_prev) > 0.001 || Math.Abs(src.E6.v - E6_prev) > 0.001)
             {
                 Num_E6POS = Num_E6POS + 1;
                 Num_CPDAT = Num_CPDAT + 1;
                 //-------------SRC----------------
-                SectOutput(block_src1, ";FOLD LIN P" + Num_E6POS.ToString() + " CONT Vel=" + nc.VEL_CP.ToString() + " m/s CPDAT" + 
-                           Num_CPDAT.ToString() + " Tool[" + nc.TOOL_DATA.ToString() + "]:Tool_main Base[" + nc.BASE_DATA.ToString() + 
+                SectOutput(block_src1, ";FOLD LIN P" + Num_E6POS.ToString() + " CONT Vel=" + Str(src.VEL_CP.v) + " m/s CPDAT" + 
+                           Num_CPDAT.ToString() + " Tool[" + Str(src.TOOL_DATA) + "]:Tool_main Base[" + Str(src.BASE_DATA) + 
                            "]:Base_main;%{PE}%R 8.3.40,%MKUKATPBASIS,%CMOVE,%VLIN, %P 1:LIN, 2:P" + Num_E6POS.ToString() + 
-                           ", 3:C_DIS C_DIS,5:" + nc.VEL_CP.ToString() + ",7:CPDAT" + Num_CPDAT.ToString());
+                           ", 3:C_DIS C_DIS,5:" + Str(src.VEL_CP.v) + ",7:CPDAT" + Num_CPDAT.ToString());
                 SectOutput(block_src1, "$BWDSTART=FALSE");
                 SectOutput(block_src1, "LDAT_ACT=LCPDAT" + Num_CPDAT.ToString() + "");
                 SectOutput(block_src1, "FDAT_ACT=FP" + Num_E6POS.ToString() + "");
-                SectOutput(block_src1, "BAS(#CP_PARAMS," + nc.VEL_CP.ToString() + ")");
+                SectOutput(block_src1, "BAS(#CP_PARAMS," + Str(src.VEL_CP.v) + ")");
                 SectOutput(block_src1, "LIN XP" + Num_E6POS.ToString() + " C_DIS C_DIS");
                 SectOutput(block_src1, ";ENDFOLD");
                 SectOutput(block_src1, "");
 
                 //------------DAT-----------------
-                SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + nc.X.ToString() + ",Y " + nc.Y.ToString() + 
-                           ",Z " + nc.Z.ToString() + ",A " + nc.A.ToString() + ",B " + nc.B.ToString() + ",C " + nc.C.ToString() + 
-                           ",S "+ State.ToString() + ",T " + Turn.ToString()+ ",E1 " + nc.E1.ToString() + ",E2 " + nc.E2.ToString() + 
-                           ",E3 "+ nc.E3.ToString() +",E4 "+ nc.E4.ToString() + ",E5 " + nc.E5.ToString() +",E6 " + nc.E6.ToString() + "}");
-                SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
-                           nc.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
-                SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL " + nc.VEL_CP.ToString() + ",ACC " + 
+                SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + src.X.ToString() + ",Y " + src.Y.ToString() + 
+                           ",Z " + src.Z.ToString() + ",A " + src.A.ToString() + ",B " + src.B.ToString() + ",C " + src.C.ToString() + 
+                           ",S "+ State.ToString() + ",T " + Turn.ToString()+ ",E1 " + src.E1.ToString() + ",E2 " + src.E2.ToString() + 
+                           ",E3 "+ src.E3.ToString() +",E4 "+ src.E4.ToString() + ",E5 " + src.E5.ToString() +",E6 " + src.E6.ToString() + "}");
+                SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + src.TOOL_DATA.ToString() + ",BASE_NO " + 
+                           src.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
+                SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL " + Str(src.VEL_CP.v) + ",ACC " + 
                            (ACC_CP * 100 / DEF_ACC).ToString() + ",APO_DIST " + APO_CDIS.ToString() + ".00000,APO_FAC 50.0000,AXIS_VEL " + 
                            Vel_PTP.ToString() + ".000,AXIS_ACC " + Acc_PTP.ToString() + 
                            ".000,ORI_TYP #VAR,CIRC_TYP #BASE,JERK_FAC 50.0000,GEAR_JERK 50.0000,EXAX_IGN 0}");
                 SectOutput(block_dat1, "");
                 //--------------------------------
 
-                X_prev = nc.X.v; Y_prev = nc.Y.v; Z_prev = nc.Z.v; A_prev = nc.A.v; B_prev = nc.B.v; C_prev = nc.C.v;
-                E1_prev = nc.E1.v; E2_prev = nc.E2.v; E3_prev = nc.E3.v; E4_prev = nc.E4.v; E5_prev = nc.E5.v; E6_prev = nc.E6.v;
+                X_prev = src.X.v; Y_prev = src.Y.v; Z_prev = src.Z.v; A_prev = src.A.v; B_prev = src.B.v; C_prev = src.C.v;
+                E1_prev = src.E1.v; E2_prev = src.E2.v; E3_prev = src.E3.v; E4_prev = src.E4.v; E5_prev = src.E5.v; E6_prev = src.E6.v;
 
                 if (Num_CPDAT >= MAX_num_line)
                 {
@@ -247,37 +238,34 @@ namespace SprutTechnology.SCPostprocessor
                     // ChangeNcFile Current_NAME_file + ".src"
                     SectOutput(block_src1, "END");
                     head_src();
-                    OutSection(block_src1);
                     // !---.DAT----
                     // ChangeNcFile Current_NAME_file + ".dat"
                     SectOutput(block_dat1, "ENDDAT");
                     head_dat();
-                    OutSection(block_dat1);
                 }
             }
         }
 
         public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
         {
-            if (cmd.Flt["CSNumber"] >= 53) nc.BASE_DATA.v = cmd.Flt["CSNumber"] - 53;
-            else nc.BASE_DATA.v = cmd.Flt["CSNumber"];
+            if (cmd.Flt["CSNumber"] >= 53) src.BASE_DATA.v = cmd.Flt["CSNumber"] - 53;
+            else src.BASE_DATA.v = cmd.Flt["CSNumber"];
             
-            if (nc.BASE_DATA.v != nc.BASE_DATA.v0)
+            if (src.BASE_DATA.v != src.BASE_DATA.v0)
             {
                 if (cld[1] == 0 && cld[2] == 0 && cld[3] == 0 && cld[6] == 0 && cld[7] == 0 && cld[8] == 0)
                 {
                     SectOutput(block_src1, "$BASE = $WORLD");
-                    nc.BASE_DATA.v = 0;
-                    nc.BASE_DATA.v0 = nc.BASE_DATA.v;
+                    src.BASE_DATA.v = 0;
+                    src.BASE_DATA.v0 = src.BASE_DATA.v;
                 }
-                else SectOutput(block_src1, "$BASE=BASE_DATA[" + nc.BASE_DATA.ToString() + "]");
+                else SectOutput(block_src1, "$BASE=BASE_DATA[" + src.BASE_DATA.ToString() + "]");
             }
         }
 
         public override void OnPartNo(ICLDPartNoCommand cmd, CLDArray cld)
         {
             MaxReal = 9999999;
-            SectInit();
 
             Vel_PTP = 20;
             Acc_PTP = 20;
@@ -285,10 +273,27 @@ namespace SprutTechnology.SCPostprocessor
             APO_CPT = 3;
             ACC_CP = 1;
             DEF_ACC = 2.3;
-
-            MAX_num_line = 99999999;
-
             
+            // От использования следующих двух переменных в принципе можно избавится
+            block_src1 = 1;
+            block_dat1 = 3;
+
+            MAX_num_line = Settings.Params.Int["OutFiles.MaxLinesCount"];
+
+            var prj = CLDProject;
+            string dir = Settings.Params.Str["OutFiles.NCFilesOutDir"];
+            if (String.IsNullOrEmpty(dir))
+                dir = prj.FilePath;
+            string progName = Settings.Params.Str["OutFiles.ProgName"];
+            if (String.IsNullOrEmpty(progName))
+                progName = prj.ProjectName;
+            src = new NCFile();
+            dat = new NCFile();
+            src.OutputFileName =  Path.Combine(dir, progName + ".src");
+            dat.OutputFileName =  Path.Combine(dir, progName + ".dat");
+            Current_NAME_file = progName.ToUpper();
+
+
             // Big_small_file();
             // if (Big_small_file == 1)
             // {
@@ -318,7 +323,7 @@ namespace SprutTechnology.SCPostprocessor
                 Num_PPDAT = Num_PPDAT + 1;
 
                 SectOutput(block_src1, ";FOLD PTP P" + Num_E6POS.ToString() + " Vel=" + Vel_PTP.ToString() + " % PDAT" + 
-                           Num_PPDAT.ToString() + " Tool[" + nc.TOOL_DATA.ToString() + "]:Tool_main Base[" + nc.BASE_DATA.ToString() + 
+                           Num_PPDAT.ToString() + " Tool[" + Str(src.TOOL_DATA) + "]:Tool_main Base[" + Str(src.BASE_DATA) + 
                            "]:Base_main;%{PE};%{PE}%R 8.3.40,%MKUKATPBASIS,%CMOVE,%VPTP,%P 1:PTP, 2:P" + 
                            Num_E6POS.ToString() + ", 3:, 5:" + Vel_PTP.ToString() + ", 7:PDAT" + Num_PPDAT.ToString());
                 SectOutput(block_src1, "$BWDSTART=FALSE");
@@ -330,12 +335,12 @@ namespace SprutTechnology.SCPostprocessor
                 SectOutput(block_src1, "");
 
                 //------------DAT-----------------
-                SectOutput(block_dat1, "DECL E6AXIS XP" + Num_E6POS.ToString() + "={A1 " + nc.A1.ToString() + ",A2 " + nc.A2.ToString() + 
-                           ",A3 " + nc.A3.ToString() + ",A4 " + nc.A4.ToString() + ",A5 " + nc.A5.ToString() + ",A6 " + nc.A6.ToString() + 
-                           ",E1 " + nc.E1.ToString() + ",E2 " + nc.E2.ToString() + ",E3 " + nc.E3.ToString() + ",E4 " + nc.E4.ToString() + 
-                           ",E5 " + nc.E5.ToString() + ",E6 " + nc.E6.ToString() + "}");
-                SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
-                           nc.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
+                SectOutput(block_dat1, "DECL E6AXIS XP" + Num_E6POS.ToString() + "={A1 " + src.A1.ToString() + ",A2 " + src.A2.ToString() + 
+                           ",A3 " + src.A3.ToString() + ",A4 " + src.A4.ToString() + ",A5 " + src.A5.ToString() + ",A6 " + src.A6.ToString() + 
+                           ",E1 " + src.E1.ToString() + ",E2 " + src.E2.ToString() + ",E3 " + src.E3.ToString() + ",E4 " + src.E4.ToString() + 
+                           ",E5 " + src.E5.ToString() + ",E6 " + src.E6.ToString() + "}");
+                SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + Str(src.TOOL_DATA) + ",BASE_NO " + 
+                           Str(src.BASE_DATA) + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
                 SectOutput(block_dat1, "DECL PDAT PPDAT" + Num_PPDAT.ToString() + "={VEL " + Vel_PTP.ToString() + ",ACC " + 
                            Acc_PTP.ToString() + ",APO_DIST " + APO_CDIS.ToString() + ".0,APO_MODE #CDIS,GEAR_JERK 50.0000,EXAX_IGN 0}");
                 SectOutput(block_dat1, "");
@@ -353,10 +358,10 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
         {
-            nc.VEL_CP.v = cld[1] / 1000;
-            nc.VEL_CP.v = nc.VEL_CP.v / 60;
-            outstr = nc.VEL_CP.ToString();
-            if (outstr.Length > 0) SectOutput(block_src1, outstr+"; m/sec; " + (nc.VEL_CP.v * 60 * 1000).ToString() + " mm/min");
+            src.VEL_CP.v = cld[1] / 1000;
+            src.VEL_CP.v = Round(src.VEL_CP.v / 60, 3);
+            outstr = src.VEL_CP.ToString();
+            if (outstr.Length > 0) SectOutput(block_src1, outstr+"; m/sec; " + Str(src.VEL_CP.v * 60 * 1000) + " mm/min");
         }
 
         public void Big_small_file()
@@ -364,30 +369,14 @@ namespace SprutTechnology.SCPostprocessor
             
         }
 
-        public void SectInit()
-        {
-            block_src1 = 1;
-            block_src2 = 2;
-            block_dat1 = 3;
-            block_dat2 = 4;
-            for (int i = 1; i <= 4; i++){
-                ResetSection(i);
-            }
-        }
-
-        public void ResetSection(int SectID)
-        {
-            SectLen[SectID] = 0;
-        }
-
         public void RoundXYZABC()
         {
-            if (nc.X.v > -0.001 && nc.X.v < 0) nc.X.v = 0;
-            if (nc.Y.v > -0.001 && nc.Y.v < 0) nc.Y.v = 0;
-            if (nc.Z.v > -0.001 && nc.Z.v < 0) nc.Z.v = 0;
-            if (nc.A.v > -0.001 && nc.A.v < 0) nc.A.v = 0;
-            if (nc.B.v > -0.001 && nc.B.v < 0) nc.B.v = 0;
-            if (nc.C.v > -0.001 && nc.C.v < 0) nc.C.v = 0;
+            if (src.X.v > -0.001 && src.X.v < 0) src.X.v = 0;
+            if (src.Y.v > -0.001 && src.Y.v < 0) src.Y.v = 0;
+            if (src.Z.v > -0.001 && src.Z.v < 0) src.Z.v = 0;
+            if (src.A.v > -0.001 && src.A.v < 0) src.A.v = 0;
+            if (src.B.v > -0.001 && src.B.v < 0) src.B.v = 0;
+            if (src.C.v > -0.001 && src.C.v < 0) src.C.v = 0;
         }
 
         public void Point_Position(string prm, string move_type, ICLDCommand cmd)
@@ -407,41 +396,41 @@ namespace SprutTechnology.SCPostprocessor
             //----Turn------
             if (move_type == "line" || move_type == "ptp")
             {
-                if (cmd.Ptr["Axes(AxisA1Pos)"] is not null) nc.A1.v = cmd.Flt["Axes(AxisA1Pos).Value"];
-                if (cmd.Ptr["Axes(AxisA2Pos)"] is not null) nc.A2.v = cmd.Flt["Axes(AxisA2Pos).Value"];
-                if (cmd.Ptr["Axes(AxisA3Pos)"] is not null) nc.A3.v = cmd.Flt["Axes(AxisA3Pos).Value"];
-                if (cmd.Ptr["Axes(AxisA4Pos)"] is not null) nc.A4.v = cmd.Flt["Axes(AxisA4Pos).Value"];
-                if (cmd.Ptr["Axes(AxisA5Pos)"] is not null) nc.A5.v = cmd.Flt["Axes(AxisA5Pos).Value"];
-                if (cmd.Ptr["Axes(AxisA6Pos)"] is not null) nc.A6.v = cmd.Flt["Axes(AxisA6Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA1Pos)"] is not null) src.A1.v = cmd.Flt["Axes(AxisA1Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA2Pos)"] is not null) src.A2.v = cmd.Flt["Axes(AxisA2Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA3Pos)"] is not null) src.A3.v = cmd.Flt["Axes(AxisA3Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA4Pos)"] is not null) src.A4.v = cmd.Flt["Axes(AxisA4Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA5Pos)"] is not null) src.A5.v = cmd.Flt["Axes(AxisA5Pos).Value"];
+                if (cmd.Ptr["Axes(AxisA6Pos)"] is not null) src.A6.v = cmd.Flt["Axes(AxisA6Pos).Value"];
             }
             else if (move_type == "circ1")
             {
-                if (cmd.Ptr["MidPos.Axes(AxisA1Pos)"] is not null) nc.A1.v = cmd.Flt["MidPos.Axes(AxisA1Pos).Value"];
-                if (cmd.Ptr["MidPos.Axes(AxisA2Pos)"] is not null) nc.A2.v = cmd.Flt["MidPos.Axes(AxisA2Pos).Value"];
-                if (cmd.Ptr["MidPos.Axes(AxisA3Pos)"] is not null) nc.A3.v = cmd.Flt["MidPos.Axes(AxisA3Pos).Value"];
-                if (cmd.Ptr["MidPos.Axes(AxisA4Pos)"] is not null) nc.A4.v = cmd.Flt["MidPos.Axes(AxisA4Pos).Value"];
-                if (cmd.Ptr["MidPos.Axes(AxisA5Pos)"] is not null) nc.A5.v = cmd.Flt["MidPos.Axes(AxisA5Pos).Value"];
-                if (cmd.Ptr["MidPos.Axes(AxisA6Pos)"] is not null) nc.A6.v = cmd.Flt["MidPos.Axes(AxisA6Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA1Pos)"] is not null) src.A1.v = cmd.Flt["MidPos.Axes(AxisA1Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA2Pos)"] is not null) src.A2.v = cmd.Flt["MidPos.Axes(AxisA2Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA3Pos)"] is not null) src.A3.v = cmd.Flt["MidPos.Axes(AxisA3Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA4Pos)"] is not null) src.A4.v = cmd.Flt["MidPos.Axes(AxisA4Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA5Pos)"] is not null) src.A5.v = cmd.Flt["MidPos.Axes(AxisA5Pos).Value"];
+                if (cmd.Ptr["MidPos.Axes(AxisA6Pos)"] is not null) src.A6.v = cmd.Flt["MidPos.Axes(AxisA6Pos).Value"];
             }
             else if (move_type == "circ2")
             {
-                if (cmd.Ptr["EndPos.Axes(AxisA1Pos)"] is not null) nc.A1.v = cmd.Flt["EndPos.Axes(AxisA1Pos).Value"];
-                if (cmd.Ptr["EndPos.Axes(AxisA2Pos)"] is not null) nc.A2.v = cmd.Flt["EndPos.Axes(AxisA2Pos).Value"];
-                if (cmd.Ptr["EndPos.Axes(AxisA3Pos)"] is not null) nc.A3.v = cmd.Flt["EndPos.Axes(AxisA3Pos).Value"];
-                if (cmd.Ptr["EndPos.Axes(AxisA4Pos)"] is not null) nc.A4.v = cmd.Flt["EndPos.Axes(AxisA4Pos).Value"];
-                if (cmd.Ptr["EndPos.Axes(AxisA5Pos)"] is not null) nc.A5.v = cmd.Flt["EndPos.Axes(AxisA5Pos).Value"];
-                if (cmd.Ptr["EndPos.Axes(AxisA6Pos)"] is not null) nc.A6.v = cmd.Flt["EndPos.Axes(AxisA6Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA1Pos)"] is not null) src.A1.v = cmd.Flt["EndPos.Axes(AxisA1Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA2Pos)"] is not null) src.A2.v = cmd.Flt["EndPos.Axes(AxisA2Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA3Pos)"] is not null) src.A3.v = cmd.Flt["EndPos.Axes(AxisA3Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA4Pos)"] is not null) src.A4.v = cmd.Flt["EndPos.Axes(AxisA4Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA5Pos)"] is not null) src.A5.v = cmd.Flt["EndPos.Axes(AxisA5Pos).Value"];
+                if (cmd.Ptr["EndPos.Axes(AxisA6Pos)"] is not null) src.A6.v = cmd.Flt["EndPos.Axes(AxisA6Pos).Value"];
             }
 
-            nc.A1.v0 = nc.A1.v; nc.A2.v0 = nc.A2.v; nc.A3.v0 = nc.A3.v; nc.A4.v0 = nc.A4.v; nc.A5.v0 = nc.A5.v; nc.A6.v0 = nc.A6.v;
+            src.A1.v0 = src.A1.v; src.A2.v0 = src.A2.v; src.A3.v0 = src.A3.v; src.A4.v0 = src.A4.v; src.A5.v0 = src.A5.v; src.A6.v0 = src.A6.v;
 
             Turn = 0;
-            if (nc.A1.v < 0) Turn = Turn + 1;
-            if (nc.A2.v < 0) Turn = Turn + 2;
-            if (nc.A3.v < 0) Turn = Turn + 4;
-            if (nc.A4.v < 0) Turn = Turn + 8;
-            if (nc.A5.v < 0) Turn = Turn + 16;
-            if (nc.A6.v < 0) Turn = Turn + 32;
+            if (src.A1.v < 0) Turn = Turn + 1;
+            if (src.A2.v < 0) Turn = Turn + 2;
+            if (src.A3.v < 0) Turn = Turn + 4;
+            if (src.A4.v < 0) Turn = Turn + 8;
+            if (src.A5.v < 0) Turn = Turn + 16;
+            if (src.A6.v < 0) Turn = Turn + 32;
         }
 
         public void if_first_point()
@@ -449,25 +438,25 @@ namespace SprutTechnology.SCPostprocessor
             Num_E6POS = Num_E6POS + 1;
             Num_CPDAT = Num_CPDAT + 1;
             //-------------SRC----------------
-            SectOutput(block_src1, ";FOLD LIN P" + Num_E6POS.ToString() + " CONT Vel=" + nc.VEL_CP.ToString() + " m/s CPDAT" + 
-                       Num_CPDAT.ToString() + " Tool[" + nc.TOOL_DATA.ToString() + "]:Tool_main Base[" + 
-                       nc.BASE_DATA.ToString() + "]:Base_main;%{PE}%R 8.3.40,%MKUKATPBASIS,%CMOVE,%VLIN, %P 1:LIN, 2:P" + 
-                       Num_E6POS.ToString() + ", 3:C_DIS C_DIS,5:" + nc.VEL_CP.ToString() + ",7:CPDAT" + Num_CPDAT.ToString());
+            SectOutput(block_src1, ";FOLD LIN P" + Num_E6POS.ToString() + " CONT Vel=" + Str(src.VEL_CP.v) + " m/s CPDAT" + 
+                       Num_CPDAT.ToString() + " Tool[" + src.TOOL_DATA.ToString() + "]:Tool_main Base[" + 
+                       src.BASE_DATA.ToString() + "]:Base_main;%{PE}%R 8.3.40,%MKUKATPBASIS,%CMOVE,%VLIN, %P 1:LIN, 2:P" + 
+                       Num_E6POS.ToString() + ", 3:C_DIS C_DIS,5:" + Str(src.VEL_CP.v) + ",7:CPDAT" + Num_CPDAT.ToString());
             SectOutput(block_src1, "$BWDSTART=FALSE");
             SectOutput(block_src1, "LDAT_ACT=LCPDAT" + Num_CPDAT.ToString() + "");
             SectOutput(block_src1, "FDAT_ACT=FP" + Num_E6POS.ToString() + "");
-            SectOutput(block_src1, "BAS(#CP_PARAMS," + nc.VEL_CP.ToString() + ")");
+            SectOutput(block_src1, "BAS(#CP_PARAMS," + Str(src.VEL_CP.v) + ")");
             SectOutput(block_src1, "LIN XP" + Num_E6POS.ToString() + " C_DIS C_DIS");
             SectOutput(block_src1, ";ENDFOLD");
             SectOutput(block_src1, "");
             //------------DAT-----------------
-            SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + nc.X.ToString() + ",Y " + nc.Y.ToString() + 
-                       ",Z " + nc.Z.ToString() + ",A " + nc.A.ToString() + ",B " + nc.B.ToString() + ",C " + nc.C.ToString() + 
-                       ",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + nc.E1.ToString() + ",E2 " + nc.E2.ToString() + 
-                       ",E3 " + nc.E3.ToString() + ",E4 " + nc.E4.ToString() + ",E5 " + nc.E5.ToString() + ",E6 " + nc.E6.ToString() + "}");
-            SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + nc.TOOL_DATA.ToString() + ",BASE_NO " + 
-                       nc.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
-            SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL "+ nc.VEL_CP.ToString() + ",ACC " + 
+            SectOutput(block_dat1, "DECL E6POS XP" + Num_E6POS.ToString() + "={X " + src.X.ToString() + ",Y " + src.Y.ToString() + 
+                       ",Z " + src.Z.ToString() + ",A " + src.A.ToString() + ",B " + src.B.ToString() + ",C " + src.C.ToString() + 
+                       ",S " + State.ToString() + ",T " + Turn.ToString() + ",E1 " + src.E1.ToString() + ",E2 " + src.E2.ToString() + 
+                       ",E3 " + src.E3.ToString() + ",E4 " + src.E4.ToString() + ",E5 " + src.E5.ToString() + ",E6 " + src.E6.ToString() + "}");
+            SectOutput(block_dat1, "DECL FDAT FP" + Num_E6POS.ToString() + "={TOOL_NO " + src.TOOL_DATA.ToString() + ",BASE_NO " + 
+                       src.BASE_DATA.ToString() + ",IPO_FRAME #BASE,POINT2[] " + "34" + " " + "34" + ",TQ_STATE FALSE}");
+            SectOutput(block_dat1, "DECL LDAT LCPDAT" + Num_CPDAT.ToString() + "={VEL "+ Str(src.VEL_CP.v) + ",ACC " + 
                        (ACC_CP * 100 / DEF_ACC).ToString() + ",APO_DIST " + APO_CDIS.ToString() + ".00000,APO_FAC 50.0000,AXIS_VEL " + 
                        Vel_PTP.ToString() + ".000,AXIS_ACC " + Acc_PTP.ToString() + ".000,ORI_TYP #VAR,CIRC_TYP #BASE,JERK_FAC 50.0000,GEAR_JERK 50.0000,EXAX_IGN 0}");
             SectOutput(block_dat1, "");
@@ -478,30 +467,21 @@ namespace SprutTechnology.SCPostprocessor
             switch (SectID)
             {
                 case 1:
-                    PrivateOutLineToSect(NCString, SectID, Sect1);
+                    src.WriteLine(NCString);
                     break;
                 case 2:
-                    PrivateOutLineToSect(NCString, SectID, Sect2);
-                    break;
+                    throw new Exception("Output to section 2 not implemented");
                 case 3:
-                    PrivateOutLineToSect(NCString, SectID, Sect3);
+                    dat.WriteLine(NCString);
                     break;
                 case 4:
-                    PrivateOutLineToSect(NCString, SectID, Sect4);
-                    break;
+                    throw new Exception("Output to section 4 not implemented");
             }
-        }
-
-        public void PrivateOutLineToSect(string NCString, int SectID, string[] Sect)
-        {
-            int tmp = SectLen[SectID] + 1;
-            SectLen[SectID] = tmp;
-            Sect[tmp] = NCString;
         }
 
         public void head_src()
         {
-            string begin_src_file = $@"DEF {Current_NAME_file} () 
+            string begin_src_file = $@"DEF {Current_NAME_file}() 
 decl int i
 GLOBAL INTERRUPT DECL 3 WHEN $STOPMESS==TRUE DO IR_STOPM ( )
 INTERRUPT ON 3
@@ -531,36 +511,7 @@ $APO.CVEL = 50 ; %, c_vel
 $ORI_TYPE = #VAR; #VAR, #CONSTANT, #JOINT
 $CIRC_TYPE = #base; #PATH, #BASE""";
                     
-            nc.Output(begin_src_file);
-        }
-
-        public void OutSection(int SectID)
-        {
-            switch (SectID)
-            {
-                case 1:
-                    PrivateOutSect(SectID, Sect1);
-                    break;
-                case 2:
-                    PrivateOutSect(SectID, Sect2);
-                    break;
-                case 3:
-                    PrivateOutSect(SectID, Sect3);
-                    break;
-                case 4:
-                    PrivateOutSect(SectID, Sect4);
-                    break;
-            }
-        }
-
-        public void PrivateOutSect(int SectID, string[] Sect)
-        {
-            int i;
-             for (i = 1; i <= SectLen[SectID]; i++)
-            {
-                nc.WriteLine(Sect[i]);
-                Sect[i] = "";
-            }
+            src.Output(begin_src_file, src.FileStart);
         }
 
         public void head_dat()
@@ -582,7 +533,7 @@ DECL INT SUCCESS
 ;ENDFOLD (EXTERNAL DECLARATIONS)
 ;DECL BASIS_SUGG_T LAST_BASIS={{POINT1[] ""P53                     "",POINT2[] ""P53                     "",CP_PARAMS[] ""CPDAT41                 "",PTP_PARAMS[] ""PDAT4                   "",CONT[] ""C_DIS C_DIS             "",CP_VEL[] ""0.02                    "",PTP_VEL[] ""50                      "",SYNC_PARAMS[] ""SYNCDAT                 "",SPL_NAME[] ""S0                      "",A_PARAMS[] ""ADAT0                   ""}}";
 
-            nc.Output(begin_dat_file);
+            dat.Output(begin_dat_file, dat.FileStart);
         }
 
         public void A1_A6(int StartCLDIndex, int AxesCount, CLDArray cld)
@@ -591,148 +542,148 @@ DECL INT SUCCESS
             for (axi = 1; axi <= AxesCount; axi++)
             {
                 cli = StartCLDIndex + (axi - 1) * 2;
-                if (cld[cli] == AIndex[0]) nc.A1.v = cld[cli + 1];
-                if (cld[cli] == AIndex[1]) nc.A2.v = cld[cli + 1];
-                if (cld[cli] == AIndex[2]) nc.A3.v = cld[cli + 1];
-                if (cld[cli] == AIndex[3]) nc.A4.v = cld[cli + 1];
-                if (cld[cli] == AIndex[4]) nc.A5.v = cld[cli + 1];
-                if (cld[cli] == AIndex[5]) nc.A6.v = cld[cli + 1];
+                if (cld[cli] == AIndex[0]) src.A1.v = cld[cli + 1];
+                if (cld[cli] == AIndex[1]) src.A2.v = cld[cli + 1];
+                if (cld[cli] == AIndex[2]) src.A3.v = cld[cli + 1];
+                if (cld[cli] == AIndex[3]) src.A4.v = cld[cli + 1];
+                if (cld[cli] == AIndex[4]) src.A5.v = cld[cli + 1];
+                if (cld[cli] == AIndex[5]) src.A6.v = cld[cli + 1];
             }
         }
         
         public void Ext_Axis(ICLDCommand cmd)
         {
-            E1_prev = nc.E1.v; E2_prev = nc.E2.v; E3_prev = nc.E3.v; E4_prev = nc.E4.v; E5_prev = nc.E5.v; E6_prev = nc.E6.v;
+            E1_prev = src.E1.v; E2_prev = src.E2.v; E3_prev = src.E3.v; E4_prev = src.E4.v; E5_prev = src.E5.v; E6_prev = src.E6.v;
             
             // ===E1====
             if (cmd.Ptr["Axes(ExtAxis1Pos)"] is not null)
             {
-                nc.E1.v = cmd.Flt["Axes(ExtAxis1Pos).Value"];
-                nc.E1.v0 = MaxReal;
+                src.E1.v = cmd.Flt["Axes(ExtAxis1Pos).Value"];
+                src.E1.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis1Pos)"] is not null && mid_end == 1)
             {
-                nc.E1.v = cmd.Flt["MidPos.Axes(ExtAxis1Pos).Value"];
-                nc.E1.v0 = MaxReal;
+                src.E1.v = cmd.Flt["MidPos.Axes(ExtAxis1Pos).Value"];
+                src.E1.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis1Pos)"] is not null && mid_end == 2)
             {
-                nc.E1.v = cmd.Flt["EndPos.Axes(ExtAxis1Pos).Value"];
-                nc.E1.v0 = MaxReal;
+                src.E1.v = cmd.Flt["EndPos.Axes(ExtAxis1Pos).Value"];
+                src.E1.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             // ===E2====
             if (cmd.Ptr["Axes(ExtAxis2Pos)"] is not null)
             {
-                nc.E2.v = cmd.Flt["Axes(ExtAxis2Pos).Value"];
-                nc.E2.v0 = MaxReal;
+                src.E2.v = cmd.Flt["Axes(ExtAxis2Pos).Value"];
+                src.E2.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis2Pos)"] is not null && mid_end == 1)
             {
-                nc.E2.v = cmd.Flt["MidPos.Axes(ExtAxis2Pos).Value"];
-                nc.E2.v0 = MaxReal;
+                src.E2.v = cmd.Flt["MidPos.Axes(ExtAxis2Pos).Value"];
+                src.E2.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis2Pos)"] is not null && mid_end == 2)
             {
-                nc.E2.v = cmd.Flt["EndPos.Axes(ExtAxis2Pos).Value"];
-                nc.E2.v0 = MaxReal;
+                src.E2.v = cmd.Flt["EndPos.Axes(ExtAxis2Pos).Value"];
+                src.E2.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             // ===E3====
             if (cmd.Ptr["Axes(ExtAxis3Pos)"] is not null)
             {
-                nc.E3.v = cmd.Flt["Axes(ExtAxis3Pos).Value"];
-                nc.E3.v0 = MaxReal;
+                src.E3.v = cmd.Flt["Axes(ExtAxis3Pos).Value"];
+                src.E3.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis3Pos)"] is not null && mid_end == 1)
             {
-                nc.E3.v = cmd.Flt["MidPos.Axes(ExtAxis3Pos).Value"];
-                nc.E3.v0 = MaxReal;
+                src.E3.v = cmd.Flt["MidPos.Axes(ExtAxis3Pos).Value"];
+                src.E3.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis3Pos)"] is not null && mid_end == 2)
             {
-                nc.E3.v = cmd.Flt["EndPos.Axes(ExtAxis3Pos).Value"];
-                nc.E3.v0 = MaxReal;
+                src.E3.v = cmd.Flt["EndPos.Axes(ExtAxis3Pos).Value"];
+                src.E3.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             // ===E4====
             if (cmd.Ptr["Axes(ExtAxis4Pos)"] is not null)
             {
-                nc.E4.v = cmd.Flt["Axes(ExtAxis4Pos).Value"];
-                nc.E4.v0 = MaxReal;
+                src.E4.v = cmd.Flt["Axes(ExtAxis4Pos).Value"];
+                src.E4.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis4Pos)"] is not null && mid_end == 1)
             {
-                nc.E4.v = cmd.Flt["MidPos.Axes(ExtAxis4Pos).Value"];
-                nc.E4.v0 = MaxReal;
+                src.E4.v = cmd.Flt["MidPos.Axes(ExtAxis4Pos).Value"];
+                src.E4.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis4Pos)"] is not null && mid_end == 2)
             {
-                nc.E4.v = cmd.Flt["EndPos.Axes(ExtAxis4Pos).Value"];
-                nc.E4.v0 = MaxReal;
+                src.E4.v = cmd.Flt["EndPos.Axes(ExtAxis4Pos).Value"];
+                src.E4.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             // ===E5====
             if (cmd.Ptr["Axes(ExtAxis5Pos)"] is not null)
             {
-                nc.E5.v = cmd.Flt["Axes(ExtAxis5Pos).Value"];
-                nc.E5.v0 = MaxReal;
+                src.E5.v = cmd.Flt["Axes(ExtAxis5Pos).Value"];
+                src.E5.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis5Pos)"] is not null && mid_end == 1)
             {
-                nc.E5.v = cmd.Flt["MidPos.Axes(ExtAxis5Pos).Value"];
-                nc.E5.v0 = MaxReal;
+                src.E5.v = cmd.Flt["MidPos.Axes(ExtAxis5Pos).Value"];
+                src.E5.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis5Pos)"] is not null && mid_end == 2)
             {
-                nc.E5.v = cmd.Flt["EndPos.Axes(ExtAxis5Pos).Value"];
-                nc.E5.v0 = MaxReal;
+                src.E5.v = cmd.Flt["EndPos.Axes(ExtAxis5Pos).Value"];
+                src.E5.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             // ===E6====
             if (cmd.Ptr["Axes(ExtAxis6Pos)"] is not null)
             {
-                nc.E6.v = cmd.Flt["Axes(ExtAxis6Pos).Value"];
-                nc.E6.v0 = MaxReal;
+                src.E6.v = cmd.Flt["Axes(ExtAxis6Pos).Value"];
+                src.E6.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["MidPos.Axes(ExtAxis6Pos)"] is not null && mid_end == 1)
             {
-                nc.E6.v = cmd.Flt["MidPos.Axes(ExtAxis6Pos).Value"];
-                nc.E6.v0 = MaxReal;
+                src.E6.v = cmd.Flt["MidPos.Axes(ExtAxis6Pos).Value"];
+                src.E6.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
 
             if (cmd.Ptr["EndPos.Axes(ExtAxis6Pos)"] is not null && mid_end == 2)
             {
-                nc.E6.v = cmd.Flt["EndPos.Axes(ExtAxis6Pos).Value"];
-                nc.E6.v0 = MaxReal;
+                src.E6.v = cmd.Flt["EndPos.Axes(ExtAxis6Pos).Value"];
+                src.E6.v0 = MaxReal;
                 PTP_main_axes = PTP_main_axes + 1;
             }
         }

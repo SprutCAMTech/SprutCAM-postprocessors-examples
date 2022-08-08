@@ -4,10 +4,10 @@
 
 <Settings Version="1.0">
     <Description>
-        <Comments></Comments>
-        <CNCSystem></CNCSystem>
-        <MachineName></MachineName>
-        <Authors></Authors>
+        <Comments />
+        <CNCSystem />
+        <MachineName />
+        <Authors />
     </Description>
     <Common>
         <!-- No, Cuts, Halfs, Quaters -->
@@ -20,7 +20,9 @@
     </Common>
     <UserDefinedParameters>
         <Group ID="OutFiles" Caption="$(OutputFiles)">
-            <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+            <Parameter ID="NCFilesOutDir" Caption="$(NCFilesDir)" Type="FolderName" />
+            <Parameter ID="ProgName" Caption="Programm name" Type="String" />
+            <Parameter ID="MaxLinesCount" Caption="Max lines count per file" Type="Integer" Persistent="true">1000000</Parameter>
         </Group>
     </UserDefinedParameters>
 </Settings>

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments />
+        <CNCSystem />
+        <MachineName />
+        <Authors />
+    </Description>
+    <Common>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakArcs>No</BreakArcs>
+        <!-- false, true -->
+        <BreakHelix>false</BreakHelix>
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="APTFileName" Caption="Output APT file" Type="FileName" FilesFilter="*.aptsource|*.aptsource" />
+            <Parameter ID="SplitByOperations" Caption="Each operation at separate APT file" Type="Boolean" FilesFilter="" Persistent="true" />
+            <Parameter ID="DBFFile" Caption="Database file name" Type="FileName" FilesFilter="*.dbf|*.dbf" Persistent="true" />
+            <Parameter ID="ExtPostName" Caption="External postprocessor name" Type="String" FilesFilter="*.ext|*.ext" Persistent="true">
+                <Value Caption="Fanuc 30i" Default="true">Fanuc</Value>
+                <Value Caption="Sinumerik 840D">Sinumerik</Value>
+                <Value Caption="Heidenhain iTNC530">Heidenhain</Value>
+            </Parameter>
+            <Parameter ID="Revision" Caption="Postprocessor revision" Type="Integer" Editable="true" Persistent="true">1</Parameter>
+        </Group>
+        <Group ID="ExtUtil" Caption="External utility">
+            <Parameter ID="StartExtUtil" Caption="Start external utility" Type="Boolean" Persistent="true">true</Parameter>
+            <Parameter ID="ExtUtilFileName" Caption="External utility file name" Type="FileName" FilesFilter="*.exe|*.exe" Persistent="true" />
+        </Group>
+    </UserDefinedParameters>
+</Settings>

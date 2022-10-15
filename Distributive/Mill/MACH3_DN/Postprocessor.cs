@@ -3,6 +3,7 @@ namespace SprutTechnology.SCPostprocessor
 
     public partial class NCFile: TTextNCFile
     {
+        public string ProgName;
         // Declare variables specific to a particular file here, as shown below
         // int FileNumber;
     }
@@ -21,7 +22,11 @@ namespace SprutTechnology.SCPostprocessor
         {
             nc = new NCFile();
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
-
+            nc.ProgName = Settings.Params.Str["OutFiles.NCProgName"];
+            if (String.IsNullOrEmpty(nc.ProgName))
+                nc.ProgName = prj.ProjectName;
+            nc.Text.Show($"{nc.ProgName}");
+            nc.TextBlock.Out();
             nc.WriteLine("Start of file: " + Path.GetFileName(nc.OutputFileName));
         }
 

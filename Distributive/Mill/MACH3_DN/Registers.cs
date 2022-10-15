@@ -9,11 +9,17 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary>The block of the nc-file is an ordered list of nc-words</summary>
         public NCBlock Block;
         ///<summary>X coordinate of the movement</summary>
+        public CountingNCWord BlockN = new CountingNCWord("######", 0, 1, 1);
         public NumericNCWord X = new NumericNCWord("X{-#####!####}", 0);
         ///<summary>Y coordinate of the movement</summary>
         public NumericNCWord Y = new NumericNCWord("Y{-#####!####}", 0);
         ///<summary></summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!####}", 0);
+
+        public NCBlock TextBlock;
+        ///<summary>Text string to output simply with number </summary>
+
+        public TextNCWord Text = new TextNCWord("","","");
         public NCFile(): base()
         {
             Block = new NCBlock(
@@ -21,6 +27,10 @@ namespace SprutTechnology.SCPostprocessor
                   X, 
                   Y, 
                   Z);
+            TextBlock = new NCBlock(
+                this,
+                BlockN,
+                Text);
             OnInit();
         }
     }

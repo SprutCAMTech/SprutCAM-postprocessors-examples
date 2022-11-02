@@ -37,13 +37,19 @@ namespace SprutTechnology.SCPostprocessor
 
             // for(int i = 0; i < )
         }
+
+            
+        
         public override void OnStartProject(ICLDProject prj)
         {
+            
+
             nc = new NCFile();
             nc.OutputFileName = Settings.Params.Str["OutFiles.NCFileName"];
-            nc.ProgName = Settings.Params.Str["OutFiles.NCProgName"];
+            //nc.ProgName = Settings.Params.Str["OutFiles.NCProgName"];
+            InputBox("Input the name of programs", ref nc.ProgName);
             if (String.IsNullOrEmpty(nc.ProgName))
-                nc.ProgName = prj.ProjectName;
+                nc.ProgName = "";
             nc.Text.Show($"{nc.ProgName}");
             nc.WriteLine("%");
             nc.WriteLine("O" + nc.ProgName);

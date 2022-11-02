@@ -8,32 +8,32 @@ namespace SprutTechnology.SCPostprocessor
     {
         ///<summary>The block of the nc-file is an ordered list of nc-words</summary>
         public NCBlock Block;
-        ///<summary>X coordinate of the movement</summary>
+        ///<summary></summary>
         public CountingNCWord BlockN = new CountingNCWord("N{######}", 10, 10, 1);
+        ///<summary>X coordinate of the movement</summary>
         public NumericNCWord X = new NumericNCWord("X{-#####!####}", 0);
         ///<summary>Y coordinate of the movement</summary>
         public NumericNCWord Y = new NumericNCWord("Y{-#####!####}", 0);
         ///<summary></summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!####}", 0);
-
-        public NumericNCWord GInterp = new  NumericNCWord("G{00}",0);
-
+        ///<summary></summary>
         public NCBlock TextBlock;
-        ///<summary>Text string to output simply with number </summary>
-
-        public TextNCWord Text = new TextNCWord("","","");
+        ///<summary>Text string to output simply with number</summary>
+        public TextNCWord Text = new TextNCWord("", "", "");
+        ///<summary></summary>
+        public NumericNCWord GInterp = new NumericNCWord("G{00}", 0);
         public NCFile(): base()
         {
             Block = new NCBlock(
-                  this,
-                  BlockN,
+                  this, 
+                  BlockN, 
                   X, 
                   Y, 
                   Z);
             TextBlock = new NCBlock(
-                this,
-                BlockN,
-                Text);
+                      this, 
+                      BlockN, 
+                      Text);
             OnInit();
         }
     }

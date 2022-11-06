@@ -21,25 +21,21 @@ namespace SprutTechnology.SCPostprocessor
         #endregion
 
         const string SPPName = "MACH3_DN";
-
-        public void OutToolList()
+  
+         public void OutToolList()
         {
-            SortedList<int,string> list = new SortedList<int, string>();
-            for(int i = 0; i < CLDProject.Operations.Count; i++)
+            var diametr = CLDProject.Operations[0].Tool.Command.CLD[5];
+            for(int i = 0; i < CLDProject.Operations.Count;i++)
             {
-                var op = CLDProject.Operations[i];
-                if((op.Tool != null) && (op.Tool.Command != null))
+                var curtool =  CLDProject.Operations[i];
+                if(curtool.Enabled)
                 {
-                    list.TryAdd(op.Tool.Number, op.Tool.Caption);
+                    diametr = curtool.Tool.Command.CLD[5];
                 }
-            }
-            foreach(var tl in list)
-            {
-                nc.Output(tl.Key + " " + tl.Value);
+                nc.Output($"(Tool) ({curtool.Tool.Number}) (Diametr) ({diametr}.) ({curtool.Tool.Caption}) (Operation) ({curtool.Comment}))");
+                
             }
         }
-
-            
         
         public override void OnStartProject(ICLDProject prj)
         {
@@ -67,6 +63,7 @@ namespace SprutTechnology.SCPostprocessor
 
             //foreach(auto n in )
         }
+
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {

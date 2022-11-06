@@ -60,6 +60,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Output($"(Tool) ({curtool.Tool.Number}) (Diametr) ({diametr}.) ({curtool.Tool.Caption}) (Operation) ({curtool.Comment}))");
                 
             }
+            nc.WriteLine();
         }
         public void Initialise()
         { 
@@ -197,6 +198,32 @@ namespace SprutTechnology.SCPostprocessor
         {
             nc.WriteLine("(" + cmd.CLDataS + ")");
         }
+
+        public override void OnPlane(ICLDPlaneCommand cmd, CLDArray cld)
+        {
+            switch(cmd.CLD[1])
+            {
+                case 33 or 133:
+                {
+                    nc.Plane.v = 17;
+                    break;
+                }
+                case 37 or 137:
+                {
+                    nc.Plane.v = 19;
+                    break;
+                }
+                case 41 or 141:
+                {
+                    nc.Plane.v = 18;
+                    break;
+                }
+            }
+            if(cmd.CLD[1] > 100)
+            {
+                nc.Plane.v = -nc.Plane.v;
+            }
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
 
@@ -205,12 +232,12 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            nc.WriteLine();
+            
         }
 
         public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            nc.WriteLine();
+            
         }
 
         public override void StopOnCLData() 

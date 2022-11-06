@@ -20,6 +20,31 @@ namespace SprutTechnology.SCPostprocessor
 
         #endregion
 
+        double MaxReal = 99999.999;
+        int XT_ = 0;
+        int YT_ = 0;
+        int ZT_ = 0;
+        //! Constsnt cycles variables
+        int CycleOn = 0;          //! 0 - cycle Off, 1 - cycle On
+        int KodCycle = 0;         //! constant cycle code
+        int Za = 0;               //! work depth
+        int Zf = 0;               //! safe level
+        int ZP_ = 0;              // ! reverse move level
+        int Zl = 0;               //! depth of one drilling step
+        int Zi = 0;               //! transitional value
+        int Dwell = 0;            //! pause in constsnt cycles
+        int Fr = 0;               //! work FEED_ 
+        int Pause = 0;
+        //! Set machene functions by default
+        
+       
+        int Firstap = 1;
+        int Fedmod = 10;
+        int Isfirstpass = 1;
+        int SubIDShift = 0;//! Numbers of subroutines starts from it
+
+
+
         const string SPPName = "MACH3_DN";
   
          public void OutToolList()
@@ -35,6 +60,19 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Output($"(Tool) ({curtool.Tool.Number}) (Diametr) ({diametr}.) ({curtool.Tool.Caption}) (Operation) ({curtool.Comment}))");
                 
             }
+        }
+        public void Initialise()
+        { 
+            nc.GInterp.v = MaxReal;               //! initilalise G0 rapid
+            nc.ZCycle.v = MaxReal;                //! initalise cycle depth
+            nc.ZClear.v = MaxReal;                //! initialise cycle rapid
+            nc.Cyc_retract.v = MaxReal;           //! initialise G98 retract
+            nc.Q.v = MaxReal;                     //! initialise peck amount
+            nc.Feed_.v = MaxReal;                 //! initialise feed
+            nc.X.v = MaxReal;                     //! initialise X
+            nc.Y.v = MaxReal;                     //! initialise Y
+            nc.Z.v = MaxReal;                     //! initialise Z
+            
         }
         
         public override void OnStartProject(ICLDProject prj)
@@ -124,6 +162,37 @@ namespace SprutTechnology.SCPostprocessor
             }
         }
 
+        public override void OnLoadTool(ICLDLoadToolCommand cmd, CLDArray cld)
+        {
+            nc.Block.Out();
+            if(CycleOn == 1)
+            {
+                CycleOn = 0;
+                nc.Cycle.v = 80;
+            }
+            nc.GoTCP.v = 998;
+            nc.Block.Out();
+            var Tool_ = cld[1];
+            var H_ = cld[1];
+            int Mspdir = 0;
+            if(nc.MSP.v != 5)
+            {
+                Mspdir = (int)nc.MSP.v;
+                nc.MSP.v = 5;
+                nc.Block.Out();
+            }
+            nc.Tool.v = Tool_;
+            nc.H.v = H_;
+            nc.KorDL.v = 43;
+            nc.Msm.v = 6;
+            nc.Block.Out();
+            if(Mspdir != 0)
+            {
+                nc.MSP.v = Mspdir;
+            }
+            nc.Block.Out();
+            Initialise();
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
 

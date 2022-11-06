@@ -37,6 +37,30 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Units = new NumericNCWord("G{00}", 0);
         ///<summary></summary>
+        public NumericNCWord Cyc_retract = new NumericNCWord("G{##}", 0);
+        ///<summary></summary>
+        public NumericNCWord GoTCP = new NumericNCWord("M{###}", 0);
+        ///<summary></summary>
+        public NumericNCWord D = new NumericNCWord("D{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord H = new NumericNCWord("H{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord BT = new NumericNCWord("BT-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord ZCycle = new NumericNCWord("Z-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord ZClear = new NumericNCWord("Z-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord Q = new NumericNCWord("Q-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord Tool = new NumericNCWord("T{####}",0);
+        ///<summary></summary>
+         public NumericNCWord Feed_ = new NumericNCWord("F{####.#}",0);
+        ///<summary></summary>
+        public NumericNCWord MSP = new NumericNCWord("M{00}", 5);
+        ///<summary></summary>
+        public NumericNCWord Msm = new NumericNCWord("M{0}", 0);
+        ///<summary></summary>
         public NumericNCWord Flip = new NumericNCWord("G51 A-{##}", 0);
         ///<summary></summary>
         public NCBlock TextBlock;
@@ -59,9 +83,15 @@ namespace SprutTechnology.SCPostprocessor
                   Cycle,
                   Plane,
                   KorEcv,
+                  Tool,
                   KorDL,
+                  H,
+                  Msm,
                   Flip,
-                  Units
+                  Units,
+                  MSP,
+                  GoTCP,
+                  D
                   );
             TextBlock = new NCBlock(
                       this, 

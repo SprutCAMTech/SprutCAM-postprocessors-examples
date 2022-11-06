@@ -70,6 +70,14 @@ namespace SprutTechnology.SCPostprocessor
             nc.SmoothMv.v = 64;
             nc.CancelScale.v = 50;
             nc.Block.Out();
+
+            string Flip = "N";
+            InputBox("Flip 4th Axis Project Say Y\\N (Case Sensative): ", ref Flip);
+            if(Flip.ToUpper() == "Y")
+            {
+                nc.Flip.v = 1;
+            }
+            nc.Block.Out();
         }
 
 
@@ -80,6 +88,40 @@ namespace SprutTechnology.SCPostprocessor
             nc.Y.v = cmd.EP.Y;
             nc.Z.v = cmd.EP.Z;
             nc.Block.Out();
+        }
+
+        public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
+        {
+            switch(cld[1])
+            {
+                case 58 :
+                {
+                    int unit = 0;
+                    if(cld[20] == 0)
+                    {
+                        unit = 21;
+                    }
+                    else 
+                    {
+                        unit = 20;
+                    }
+                    if(unit == 21)
+                    {
+                        nc.Units.v = unit;
+                        nc.Text.v = "(Metric)";
+                        nc.TextBlock.Out();
+                    }
+                    else
+                    {
+                        nc.Units.v = unit;
+                        nc.Text.v = "(Inch)";
+                        nc.TextBlock.Out();
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         public override void OnFinishProject(ICLDProject prj)

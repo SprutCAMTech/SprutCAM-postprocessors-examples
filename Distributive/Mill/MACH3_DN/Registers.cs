@@ -35,6 +35,10 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord CancelScale = new NumericNCWord("G{00}", 0);
         ///<summary></summary>
+        public NumericNCWord Units = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord Flip = new NumericNCWord("G51 A-{##}", 0);
+        ///<summary></summary>
         public NCBlock TextBlock;
         ///<summary>Text string to output simply with number</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
@@ -55,11 +59,14 @@ namespace SprutTechnology.SCPostprocessor
                   Cycle,
                   Plane,
                   KorEcv,
-                  KorDL
+                  KorDL,
+                  Flip,
+                  Units
                   );
             TextBlock = new NCBlock(
                       this, 
-                      BlockN, 
+                      BlockN,
+                      Units, 
                       Text);
             OnInit();
         }

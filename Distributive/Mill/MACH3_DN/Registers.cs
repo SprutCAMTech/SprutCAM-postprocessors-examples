@@ -17,11 +17,29 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!####}", 0);
         ///<summary></summary>
+        public NumericNCWord GInterp = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord Plane = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord KorEcv = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord KorDL = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord Cycle = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord ABS_INC = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord COORDSYS = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord SmoothMv = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
+        public NumericNCWord CancelScale = new NumericNCWord("G{00}", 0);
+        ///<summary></summary>
         public NCBlock TextBlock;
         ///<summary>Text string to output simply with number</summary>
         public TextNCWord Text = new TextNCWord("", "", "");
         ///<summary></summary>
-        public NumericNCWord GInterp = new NumericNCWord("G{00}", 0);
+        
         public NCFile(): base()
         {
             Block = new NCBlock(
@@ -29,7 +47,16 @@ namespace SprutTechnology.SCPostprocessor
                   BlockN, 
                   X, 
                   Y, 
-                  Z);
+                  Z,
+                  ABS_INC,
+                  SmoothMv,
+                  CancelScale,
+                  COORDSYS,
+                  Cycle,
+                  Plane,
+                  KorEcv,
+                  KorDL
+                  );
             TextBlock = new NCBlock(
                       this, 
                       BlockN, 

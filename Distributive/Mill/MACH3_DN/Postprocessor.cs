@@ -59,9 +59,17 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine("( TIME: " + CurTime() + " )");
 
             OutToolList();
-         //   nc.WriteLine("Start of file: " + Path.GetFileName(nc.OutputFileName));
 
-            //foreach(auto n in )
+            nc.GInterp.v = 100;
+            nc.Plane.v = 17;
+            nc.KorEcv.v = 40;
+            nc.KorDL.v = 49;
+            nc.Cycle.v  = 80;
+            nc.ABS_INC.v = 90;
+            nc.COORDSYS.v = 54;
+            nc.SmoothMv.v = 64;
+            nc.CancelScale.v = 50;
+            nc.Block.Out();
         }
 
 

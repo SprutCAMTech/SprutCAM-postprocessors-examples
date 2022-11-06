@@ -193,6 +193,10 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
             Initialise();
         }
+        public override void OnComment(ICLDCommentCommand cmd, CLDArray cld)
+        {
+            nc.WriteLine("(" + cmd.CLDataS + ")");
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
 
@@ -201,7 +205,7 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
-            nc.WriteLine("(" + op.Comment + ")");
+            nc.WriteLine();
         }
 
         public override void OnFinishTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)

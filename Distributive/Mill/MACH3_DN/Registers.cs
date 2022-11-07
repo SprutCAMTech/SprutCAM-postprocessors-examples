@@ -69,7 +69,9 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Tool = new NumericNCWord("T{####}",0);
         ///<summary></summary>
-         public NumericNCWord Feed_ = new NumericNCWord("F{####.#}",0);
+        public NumericNCWord Feed_ = new NumericNCWord("F{####.#}",0);
+        ///<summary></summary>
+        public NumericNCWord InvFeed = new NumericNCWord("F{####.##}",0);
         ///<summary></summary>
         public NumericNCWord MSP = new NumericNCWord("M{##}", 5);
         ///<summary></summary>
@@ -113,6 +115,7 @@ namespace SprutTechnology.SCPostprocessor
                   M,
                   S,
                   Feed_,
+                  InvFeed,
                   Q,
                   BT,
                   Msm,

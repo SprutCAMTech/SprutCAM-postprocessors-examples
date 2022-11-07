@@ -66,10 +66,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine();
         }
 
-        public void Calcdist()
-        {
-
-        }
+        
         public void Initialise()
         { 
             // nc.GInterp.v = MaxReal;               //! initilalise G0 rapid
@@ -402,7 +399,94 @@ namespace SprutTechnology.SCPostprocessor
 
                 if ((INTERP_ == 1 )  && (nc.AT.v != nc.AT.v0))   //! Inverse time feed output
                 {
-                  Calcdist();
+                    // ! (X1 Y1 Y1 A1) - start position
+                    // ! (X2 Y2 Z2 A2) - final position
+
+                    double dx;
+                    double dy; 
+                    double dz; 
+                    double da; 
+                    double R;            
+                    double stp;
+                    double ti; 
+                    double xn; 
+                    double yn; 
+                    double zn; 
+                    double an; 
+                    double px; 
+                    double py; 
+                    double pz; 
+                    double pa; 
+                    double Dist;
+                    
+                    var time = cmd.Time;
+                    Dist = 0;
+                    dx = X2-X1;
+                    dy = Y2-Y1;
+                    dz = Z2-Z1;
+                    da = A2-A1;
+                    if (da == 0)    //!3d case
+                    {
+                      Dist = Math.Pow(dx*dx+dy*dy+dz*dz,2);
+                    } 
+                    else
+                    if ((dy == 0) && (dz == 0))    // !simple helic
+                    {
+                        R = Math.Pow(Y1*Y1+Z1*Z1,2);  //!radius of helic
+                        R = R* da*3.141592653/180 ;  //!Length of arc
+                        Dist = Math.Pow(dx*dx+R*R,2);   //! Length of helic
+                    }
+                    else    //!public case. Divide curve with 1 deg step
+                    {
+                        Dist = 0;
+                        an = A1;
+                        ti = 0;
+                        xn = X2*ti + X1*(1-ti);
+                        yn = Y2*ti + Y1*(1-ti);
+                        zn = Z2*ti + Z1*(1-ti);
+                        R = Math.Pow(yn*yn+zn*zn,2);  //!radius of current point
+                        yn = R*Math.Cos(an);
+                        zn = R*Math.Sin(an);
+                        do  //! save previous position
+                        {
+                            px = xn;
+                            py = yn;
+                            pz = zn;        //! calculating new point in 1 deg. You can change the step if you need the better tolerance
+                            if (A2>A1)
+                            {
+                                an = an + 1;
+                            } 
+                            else
+                              an = an -1;
+                            ti = (an-A1)/(A2-A1);
+                            if (ti>1)
+                            {
+                              ti = 1;
+                              an = A2;
+                            } 
+                            xn = X2*ti + X1*(1-ti);
+                            yn = Y2*ti + Y1*(1-ti);
+                            zn = Z2*ti + Z1*(1-ti);
+                            R = Math.Pow(yn*yn+zn*zn,2);  //!radius of current point
+                            yn = R*Math.Cos(an);
+                            zn = R*Math.Sin(an);
+                            dx = xn-px;
+                            dy = yn-py;
+                            dz = zn-pz;
+                            Dist = Dist + Math.Pow(dx*dx+dy*dy+dz*dz,2);
+                        }while(ti>=1);
+                    }
+                    nc.GFeed.v = 93; //!print dist
+                    time = Dist / Feedout;
+                    if (Abs(time)<0.00001)
+                    {
+                        nc.InvFeed.v = 60000;
+                    }
+                    else
+                    {
+                        nc.InvFeed.v = 1 / (time);
+                    }
+                    nc.InvFeed.v0 = MaxReal; //!Print InvFeed
                 }
                 else 
                 {
@@ -442,6 +526,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.WriteLine("(Set B-axis tilt position" + (int)nc.BT.v + " degrees)");
               }
             } 
+        
         }
         public override void OnFinishProject(ICLDProject prj)
         {

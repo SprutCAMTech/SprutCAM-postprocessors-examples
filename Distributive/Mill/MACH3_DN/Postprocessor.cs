@@ -34,7 +34,6 @@ namespace SprutTechnology.SCPostprocessor
         int Zi = 0;               //! transitional value
         int Dwell = 0;            //! pause in constsnt cycles
         int Fr = 0;               //! work FEED_ 
-        int Pause = 0;
         //! Set machene functions by default
         
        
@@ -43,7 +42,8 @@ namespace SprutTechnology.SCPostprocessor
         int Isfirstpass = 1;
         int SubIDShift = 0;//! Numbers of subroutines starts from it
 
-
+        int cfi;
+        int ppfj;
 
         const string SPPName = "MACH3_DN";
   
@@ -133,33 +133,85 @@ namespace SprutTechnology.SCPostprocessor
         {
             switch(cld[1])
             {
-                case 58 :
+                case 50:      // ! StartSub
                 {
-                    int unit = 0;
-                    if(cld[20] == 0)
+                    nc.Block.Out();
+                    nc.WriteLine();
+                    nc.WriteLine("%");
+                    nc.WriteLine("O00" + Str(SubIDShift + cld[2]));
+                    if (cmd.CLDataS != "")
                     {
-                        unit = 21;
-                    }
-                    else 
-                    {
-                        unit = 20;
-                    }
-                    if(unit == 21)
-                    {
-                        nc.Units.v = unit;
-                        nc.Text.v = "(Metric)";
-                        nc.TextBlock.Out();
-                    }
-                    else
-                    {
-                        nc.Units.v = unit;
-                        nc.Text.v = "(Inch)";
-                        nc.TextBlock.Out();
-                    }
+                        nc.WriteLine("(" + cmd.CLDataS.ToUpper() + ")");
+                    } 
+                    nc.GInterp.v = MaxReal; 
+                    nc.GInterp.v0 = nc.GInterp.v;
+                    nc.Feed_.v = MaxReal; 
+                    nc.Feed_.v0 = nc.Feed_.v;
+                    nc.BlockN.v = 0;
+                  break;
+                }
+                case 51:    //! EndSub
+                {
+                    nc.Block.Out();
+                    nc.M.v = 99; 
+                    nc.M.v0 = MaxReal;
+                    nc.Block.Out();
+                    nc.Output("%");
+                    break;
+                } 
+                case 52:    //! CallSub
+                {
+                    nc.Block.Out();
+                    nc.M.v = 98; 
+                    nc.M.v0 = MaxReal;
+                    nc.PSubNum.v = SubIDShift + cmd.CLD[2]; 
+                    nc.PSubNum.v0 = MaxReal;
+                    nc.Block.Out();
                     break;
                 }
-                default:
+                  
+                case 58 :
+                  {
+                      int unit = 0;
+                      if(cld[20] == 0)
+                      {
+                          unit = 21;
+                      }
+                      else 
+                      {
+                          unit = 20;
+                      }
+                      if(unit == 21)
+                      {
+                          nc.Units.v = unit;
+                          nc.Text.v = "(Metric)";
+                          nc.TextBlock.Out();
+                      }
+                      else
+                      {
+                          nc.Units.v = unit;
+                          nc.Text.v = "(Inch)";
+                          nc.TextBlock.Out();
+                      }
+                      break;
+                  }
+
+                  case 59:  //! EndTechInfo - Finish of operation
+                  {
+                    cfi = -1;
+                    ppfj = -1; //! CLDFile[cfi].Cmd[ppfj] = PPFun(TechInfo) of the current operation
+                    if (CycleOn == 1) 
+                    {
+                        CycleOn = 0;
+                        nc.Cycle.v = 80;
+                    }
+                    nc.Block.Out();
+                    if (cmd.CLDFile.Index < cmd.CLDFile.CmdCount - 1)  // ! if not last operation
+                    {
+                        nc.Output(""); //! Spaces between operations //! case
+                    }
                     break;
+                  }
             }
         }
 
@@ -222,6 +274,67 @@ namespace SprutTechnology.SCPostprocessor
             if(cmd.CLD[1] > 100)
             {
                 nc.Plane.v = -nc.Plane.v;
+            }
+        }
+
+        public override void OnSpindle(ICLDSpindleCommand cmd, CLDArray cld)
+        {
+            int IsReverse;
+            switch(cld[1])
+            {
+                case 71: //! On
+                {
+                    nc.S.v = Math.Abs(cld[2]);
+                    if (cld[2] > 0)
+                    {
+                        nc.MSP.v = 3;
+                    } 
+                    else nc.MSP.v = 4;        //! M3/M4  CW/CCW
+                    if (nc.MSP.v == (7-nc.MSP.v0))
+                      IsReverse = 1;
+                    else
+                      IsReverse = 0;
+                    if (cfi >= 0)
+                    {
+                        if (cmd.CLDFile.Cmd[cfi].CLD[58] != 0) //! PPFun.Cld[58] = Coolant tube number
+                        nc.Mc.v = 8;
+                    }
+                      
+                    
+                    nc.Block.Out();
+                    if ((IsReverse > 0) && (cmd.Next.CmdTypeCode != 1010))
+                    {
+                      nc.GDwell.v = 4;
+                      nc.GDwell.v0 = MaxReal;
+                      nc.Pause.v = nc.Pause.v0 * 2;
+                      nc.Pause.v0 = MaxReal;
+                      nc.Block.Out();
+                    }
+                    break;
+                } 
+                
+                case 72:  // ! Off
+                {
+                    nc.MSP.v = 5;
+                    nc.S.v = 0;
+                    break;
+                }
+                
+                
+              
+                case 246:  //! Oriented stop
+                           //!cld[2] - angle
+                           //!S = 0
+                {
+                    if (nc.S.v != nc.S.v0) 
+                    nc.Block.Out();
+                    nc.GDwell.v = 4;
+                    nc.GDwell.v0 = MaxReal;
+                    nc.Pause.v = 1;
+                    nc.Pause.v0 = MaxReal;
+                    break;
+                }
+                nc.Block.Out();
             }
         }
         public override void OnFinishProject(ICLDProject prj)

@@ -39,7 +39,11 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Cyc_retract = new NumericNCWord("G{##}", 0);
         ///<summary></summary>
+        public NumericNCWord GDwell = new NumericNCWord("G{##}", 0);
+        ///<summary></summary>
         public NumericNCWord GoTCP = new NumericNCWord("M{###}", 0);
+        ///<summary></summary>
+        public NumericNCWord M = new NumericNCWord("M{##}", 0);
         ///<summary></summary>
         public NumericNCWord D = new NumericNCWord("D{00}", 0);
         ///<summary></summary>
@@ -53,13 +57,21 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Q = new NumericNCWord("Q-{####.####}", 0);
         ///<summary></summary>
+        public NumericNCWord PSubNum = new NumericNCWord("P{##########}", 0);
+        ///<summary></summary>
+        public NumericNCWord Pause = new NumericNCWord("P{##.#}", 0);
+        ///<summary></summary>
         public NumericNCWord Tool = new NumericNCWord("T{####}",0);
         ///<summary></summary>
          public NumericNCWord Feed_ = new NumericNCWord("F{####.#}",0);
         ///<summary></summary>
         public NumericNCWord MSP = new NumericNCWord("M{00}", 5);
         ///<summary></summary>
+        public NumericNCWord Mc = new NumericNCWord("M{00}", 0);
+        ///<summary></summary>
         public NumericNCWord Msm = new NumericNCWord("M{0}", 0);
+        ///<summary></summary>
+        public NumericNCWord S = new NumericNCWord("S{####}", 0);
         ///<summary></summary>
         public NumericNCWord Flip = new NumericNCWord("G51 A-{##}", 0);
         ///<summary></summary>

@@ -21,9 +21,9 @@ namespace SprutTechnology.SCPostprocessor
         #endregion
 
         double MaxReal = 99999.999;
-        int XT_ = 0;
-        int YT_ = 0;
-        int ZT_ = 0;
+        double XT_ = 0;
+        double YT_ = 0;
+        double ZT_ = 0;
         //! Constsnt cycles variables
         int CycleOn = 0;          //! 0 - cycle Off, 1 - cycle On
         int KodCycle = 0;         //! constant cycle code
@@ -35,6 +35,9 @@ namespace SprutTechnology.SCPostprocessor
         int Dwell = 0;            //! pause in constsnt cycles
         int Fr = 0;               //! work FEED_ 
         //! Set machene functions by default
+        double cycleon = 0;
+        double Feedout = 0;
+        double INTERP_ = 99999.999;
         
         int D_, H_;
         int Firstap = 1;
@@ -61,6 +64,11 @@ namespace SprutTechnology.SCPostprocessor
                 
             }
             nc.WriteLine();
+        }
+
+        public void Calcdist()
+        {
+
         }
         public void Initialise()
         { 
@@ -354,7 +362,87 @@ namespace SprutTechnology.SCPostprocessor
             }
                 nc.Block.Out();
         }
+
+        public override void OnMultiGoto(ICLDMultiGotoCommand cmd, CLDArray cld)
+        {
+            var X1 = XT_;
+            var Y1 = YT_;
+            var Z1 = ZT_;
+            var A1 = nc.AT.v0;
+
+            if (INTERP_ > 1)
+            {
+                INTERP_ = 1;
+            } 
+            if (cmd.Ptr["Axes(AxisXPos)"].ValueAsDouble != 0) 
+            {
+                nc.X.v = cmd.Flt["Axes(AxisXPos).Value"];
+                XT_ = nc.X.v;
+            }
+            if (cmd.Ptr["Axes(AxisYPos)"].ValueAsDouble != 0)
+            {
+                nc.Y.v = cmd.Flt["Axes(AxisYPos).Value"];
+                YT_ = nc.Y.v;
+            }
+            if (cmd.Ptr["Axes(AxisZPos)"].ValueAsDouble != 0)
+            {      
+                nc.Z.v = cmd.Flt["Axes(AxisZPos).Value"];
+                ZT_ = nc.Z.v;
+            } 
+            if (cmd.Ptr["Axes(AxisAPos)"].ValueAsDouble != 0)
+            {     
+                nc.AT.v = cmd.Flt["Axes(AxisAPos).Value"];  
+            } 
+            if ((nc.X.v != nc.X.v0) || (nc.Y.v != nc.Y.v0) || (nc.Z.v != nc.Z.v0) || (nc.AT.v != nc.AT.v0))
+            {
+                var X2 = nc.X.v;
+                var Y2 = nc.Y.v;
+                var Z2 = nc.Z.v;
+                var A2 = nc.AT.v;
+
+                if ((INTERP_ == 1 )  && (nc.AT.v != nc.AT.v0))   //! Inverse time feed output
+                {
+                  Calcdist();
+                }
+                else 
+                {
+                    nc.GFeed.v = 94;
+                    if (INTERP_ != 0)
+                    {                  
+                        nc.Feed_.v = Feedout;
+                        nc.Feed_.v0 = MaxReal;
+                    } 
+                }
+                if ((cycleon == 0) || (nc.AT.v != nc.AT.v0) || (nc.Z.v != nc.Z.v0))       //! when drilling, don't output X/Y pos
+                {
+                    nc.GInterp.v = INTERP_;
+                    if ((CycleOn>0) && ((nc.AT.v != nc.AT.v0) || (nc.Z.v != nc.Z.v0)))   // ! Cannot G81 with A at the same time
+                    {
+                        nc.GInterp.v0 = MaxReal;
+                        nc.Cycle.v = 80; 
+                        nc.Cycle.v0 = MaxReal;
+                        CycleOn = 0;
+                    }
+                    nc.Block.Out();            // ! output to NC block
+                }
+            }
+            
+            nc.GoTCP.v = 0;
+            nc.GoTCP.v0 = nc.GoTCP.v;   //! After any move machine is not in tool change position
         
+            if (cmd.Ptr["Axes(AxisBPos)"].ValueAsDouble != 0)
+            {
+              nc.BT.v = cmd.Flt["Axes(AxisBPos).Value"];
+              if (nc.BT.v  !=  nc.BT.v0 ) 
+              {
+                nc.BT.v0 = nc.BT.v;
+                nc.MStop.v = 1;
+                nc.MStop.v0 = 0;
+                nc.Block.Out();
+                nc.WriteLine("(Set B-axis tilt position" + nc.BT.v + " degrees)");
+              }
+            } 
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Write("%");

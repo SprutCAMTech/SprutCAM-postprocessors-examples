@@ -374,22 +374,22 @@ namespace SprutTechnology.SCPostprocessor
             {
                 INTERP_ = 1;
             } 
-            if (cmd.Ptr["Axes(AxisXPos)"].ValueAsDouble != 0) 
+            if (cmd.Axis.X != null) 
             {
                 nc.X.v = cmd.Flt["Axes(AxisXPos).Value"];
                 XT_ = nc.X.v;
             }
-            if (cmd.Ptr["Axes(AxisYPos)"].ValueAsDouble != 0)
+            if (cmd.Axis.Y != null)
             {
                 nc.Y.v = cmd.Flt["Axes(AxisYPos).Value"];
                 YT_ = nc.Y.v;
             }
-            if (cmd.Ptr["Axes(AxisZPos)"].ValueAsDouble != 0)
+            if (cmd.Axis.Z != null)
             {      
                 nc.Z.v = cmd.Flt["Axes(AxisZPos).Value"];
                 ZT_ = nc.Z.v;
             } 
-            if (cmd.Ptr["Axes(AxisAPos)"].ValueAsDouble != 0)
+            if (cmd.Axis.A != null)
             {     
                 nc.AT.v = cmd.Flt["Axes(AxisAPos).Value"];  
             } 
@@ -430,7 +430,7 @@ namespace SprutTechnology.SCPostprocessor
             nc.GoTCP.v = 0;
             nc.GoTCP.v0 = nc.GoTCP.v;   //! After any move machine is not in tool change position
         
-            if (cmd.Ptr["Axes(AxisBPos)"].ValueAsDouble != 0)
+            if (cmd.Axis.B != null)
             {
               nc.BT.v = cmd.Flt["Axes(AxisBPos).Value"];
               if (nc.BT.v  !=  nc.BT.v0 ) 
@@ -439,7 +439,7 @@ namespace SprutTechnology.SCPostprocessor
                 nc.MStop.v = 1;
                 nc.MStop.v0 = 0;
                 nc.Block.Out();
-                nc.WriteLine("(Set B-axis tilt position" + nc.BT.v + " degrees)");
+                nc.WriteLine("(Set B-axis tilt position" + (int)nc.BT.v + " degrees)");
               }
             } 
         }

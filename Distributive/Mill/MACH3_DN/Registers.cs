@@ -17,7 +17,7 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord Z = new NumericNCWord("Z{-#####!####}", 0);
         ///<summary></summary>
-        public NumericNCWord GInterp = new NumericNCWord("G{00}", 0);
+        public NumericNCWord GInterp = new NumericNCWord("G{##}", 100);
         ///<summary></summary>
         public NumericNCWord Plane = new NumericNCWord("G{00}", 0);
         ///<summary></summary>
@@ -41,6 +41,10 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord GDwell = new NumericNCWord("G{##}", 0);
         ///<summary></summary>
+        public NumericNCWord GLCS = new NumericNCWord("G{##}", 0);
+        ///<summary></summary>
+        public NumericNCWord GFUNCC = new NumericNCWord("G{##}", 0);
+        ///<summary></summary>
         public NumericNCWord GFeed = new NumericNCWord("G{###}", 0);
         ///<summary></summary>
         public NumericNCWord GoTCP = new NumericNCWord("M{###}", 0);
@@ -53,13 +57,23 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord H = new NumericNCWord("H{##}", 0);
         ///<summary></summary>
-        public NumericNCWord BT = new NumericNCWord("BT-{####.####}", 0);
+        public NumericNCWord BT = new NumericNCWord("B-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord CT = new NumericNCWord("C-{####.####}", 0);
         ///<summary></summary>
         public NumericNCWord ZCycle = new NumericNCWord("Z-{####.####}", 99999.999);
         ///<summary></summary>
         public NumericNCWord ZClear = new NumericNCWord("Z-{####.####}", 0);
         ///<summary></summary>
         public NumericNCWord Q = new NumericNCWord("Q-{####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord QStep = new NumericNCWord("Q{#####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord XC_ = new NumericNCWord("I{#####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord YC_ = new NumericNCWord("J{#####.####}", 0);
+        ///<summary></summary>
+        public NumericNCWord ZC_ = new NumericNCWord("K{######.#####}", 0);
         ///<summary></summary>
         public NumericNCWord PSubNum = new NumericNCWord("P{##########}", 0);
         ///<summary></summary>
@@ -91,44 +105,51 @@ namespace SprutTechnology.SCPostprocessor
         public NCFile(): base()
         {
             Block = new NCBlock(
-                  this, 
-                  BlockN, 
-                  X, 
-                  Y, 
-                  Z,
-                  ABS_INC,
-                  SmoothMv,
-                  CancelScale,
-                  COORDSYS,
-                  Cycle,
-                  ZCycle,
-                  ZClear,
-                  Plane,
-                  KorEcv,
-                  Tool,
-                  KorDL,
-                  GInterp,
-                  GFeed,
-                  MStop,
-                  AT,
-                  H,
-                  M,
-                  S,
-                  Feed_,
-                  InvFeed,
-                  Q,
-                  BT,
-                  Msm,
-                  Flip,
-                  Units,
-                  MSP,
-                  GoTCP,
-                  D,
-                  Mc,
-                  Cyc_retract,
-                  GDwell,
-                  PSubNum,
-                  Pause
+                this, 
+                BlockN,
+                ABS_INC,
+                SmoothMv,
+                CancelScale,
+                COORDSYS,
+                GLCS,
+                Cycle,
+                GInterp,
+                GFUNCC,
+                GDwell,
+                Plane,
+                GFeed,
+                GoTCP,
+                KorEcv,
+                Cyc_retract,
+                X, 
+                Y, 
+                Z,
+                XC_,
+                YC_,
+                ZC_,
+                ZCycle,
+                ZClear,
+                Q,
+                QStep,
+                Feed_,
+                Pause,
+                D,
+                S,
+                Tool,
+                KorDL,
+                H,
+                Msm,
+                Flip,
+                M,
+                MStop,
+                MSP,
+                Mc,
+                AT,
+                BT,
+                CT,
+                InvFeed,
+                PSubNum,
+                Units
                   );
             TextBlock = new NCBlock(
                       this, 

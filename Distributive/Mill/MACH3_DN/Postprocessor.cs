@@ -35,9 +35,11 @@ namespace SprutTechnology.SCPostprocessor
         int Dwell = 0;            //! pause in constsnt cycles
         int Fr = 0;               //! work FEED_ 
         //! Set machene functions by default
-        double cycleon = 0;
+        double cycleon = 1;
         double Feedout = 0;
         double INTERP_ = 99999.999;
+        double interp_ = 99999.999;
+        string StructNodeName = "";
         
         int D_, H_;
         int Firstap = 1;
@@ -122,7 +124,6 @@ namespace SprutTechnology.SCPostprocessor
 
             OutToolList();
 
-            nc.GInterp.v = 100;
             nc.Plane.v = 17;
             nc.KorEcv.v = 40;
             nc.KorDL.v = 49;
@@ -145,11 +146,42 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnGoto(ICLDGotoCommand cmd, CLDArray cld)
         {
-            nc.GInterp.v = 1;
-            nc.X.v = cmd.EP.X;
-            nc.Y.v = cmd.EP.Y;
-            nc.Z.v = cmd.EP.Z;
-            nc.Block.Out();
+          if (INTERP_>0)
+          {
+            nc.GFeed.v = 94;
+            nc.Feed_.v = Feedout;
+            if (nc.GFeed.v != nc.GFeed.v0)
+              nc.Feed_.v0 = MaxReal;
+          } 
+          if (INTERP_ > 1)
+          INTERP_ = 1;    //! G1
+          nc.X.v = cld[1];                      // ! X,Y,Z in absolutes
+          nc.Y.v = cld[2];
+          nc.Z.v = cld[3];
+          if ((nc.X.v != nc.X.v0) || (nc.Y.v0 != nc.Y.v0) || (nc.Z.v != nc.Z.v0))
+          {
+            if ((cycleon == 0) || (nc.AT.v != nc.AT.v0) || (nc.Z.v != nc.Z.v0))  //! when drilling, don't output X/Y pos
+            {
+                nc.GInterp.v = INTERP_;
+              if ((CycleOn > 0) && ((nc.AT.v != nc.AT.v0) || (nc.Z.v0 != nc.Z.v0)))  // ! Cannot G81 with A at the same time
+              {
+                nc.GInterp.v0 = MaxReal;
+                nc.Cycle.v = 80; 
+                nc.Cycle.v0 = MaxReal;
+                CycleOn = 0;
+              }
+              nc.Block.Out();               // ! output to NC block
+            
+            }
+              
+          } 
+          XT_ = nc.X.v;  YT_ = nc.Y.v;  ZT_ = nc.Z.v;   //! save current coordinates
+          nc.GoTCP.v = 0; nc.GoTCP.v0 = nc.GoTCP.v; //! After any move machine is not in tool change position
+            // nc.GInterp.v = 1;
+            // nc.X.v = cmd.EP.X;
+            // nc.Y.v = cmd.EP.Y;
+            // nc.Z.v = cmd.EP.Z;
+            // nc.Block.Out();
         }
 
         public override void OnPPFun(ICLDPPFunCommand cmd, CLDArray cld)
@@ -341,7 +373,6 @@ namespace SprutTechnology.SCPostprocessor
             if(cmd.IsOff)  // ! Off
             {
                 nc.MSP.v = 5;
-                nc.S.v = 0;
             }
             
             
@@ -509,10 +540,10 @@ namespace SprutTechnology.SCPostprocessor
                     }
                     nc.Block.Out();            // ! output to NC block
                 }
+                nc.GoTCP.v = 0;
+                nc.GoTCP.v0 = nc.GoTCP.v;    //! After any move machine is not in tool change position
             }
-            
-            nc.GoTCP.v = 0;
-            nc.GoTCP.v0 = nc.GoTCP.v;   //! After any move machine is not in tool change position
+              
         
             if (cmd.Axis.B != null)
             {
@@ -527,6 +558,146 @@ namespace SprutTechnology.SCPostprocessor
               }
             } 
         
+        }
+
+        public override void OnStructure(ICLDStructureCommand cmd, CLDArray cld)
+        {
+            var NodeType = "";
+            if (!cmd.IsClose)   // ! Open group
+            {
+                NodeType = cmd.Str["NodeType"];
+                StructNodeName = cmd.Str["Comment"];
+                if ((StructNodeName != "") &&
+                 (NodeType == "Block") &&
+                 ((cmd.Caption).ToUpper() == ("HoleMachiningOp").ToUpper()) &&
+                 (cfi>=0))
+                 {
+                    SprutTechnology.SCPostprocessor.ICLDCommand i = cmd;
+                    while((i.CmdTypeCode) != 1079)
+                    {
+                        i = i.Prev;
+                    }
+                    if(i.Int["PPFun(TechInfo).Operation(1).NCCodeFormat"] == 0)    // ! Expanded cycle format
+                    {
+                        nc.BlockN.v = nc.BlockN.v + nc.BlockN.AutoIncrementStep;
+                        nc.Output("N" + Str(nc.BlockN.v) + " (" + StructNodeName + ")");
+                    }
+                 }
+            }
+            else                           //! Close group
+            {
+                StructNodeName = "";
+            } 
+        }
+
+        public override void OnRapid(ICLDRapidCommand cmd, CLDArray cld)
+        {
+            if (INTERP_ > 0) 
+            {
+                INTERP_ = 0;    //! G0
+            }
+        }
+
+        public override void OnCoolant(ICLDCoolantCommand cmd, CLDArray cld)
+        {
+            if ((nc.MSP.v != nc.MSP.v) || (nc.M.v != nc.M.v0)) 
+                nc.Block.Out();
+            if (cld[1] == 71) 
+                nc.Mc.v = 8;
+            else nc.Mc.v = 9;     //! On/Off coolant
+        }
+
+        public override void OnFeedrate(ICLDFeedrateCommand cmd, CLDArray cld)
+        {
+            Feedout = cld[1];               // ! filling FEED_ rgister
+            if (cld[3]==316) 
+              Feedout = nc.S.v/Feedout;
+            if (INTERP_ == 0) 
+                INTERP_ = 1;   //! G1
+        }
+
+        public override void OnCircle(ICLDCircleCommand cmd, CLDArray cld)
+        {
+            if (cld[4] > 0) 
+                INTERP_ = 3;
+            else INTERP_ = 2;   //! G3/G2
+            nc.XC_.v = cld[1] - XT_ + 10/1000000;                         //  ! I,J,K in increments always
+            nc.YC_.v = cld[2] - YT_ + 10/1000000;
+            nc.ZC_.v = cld[3] - ZT_ + 10/1000000;
+            nc.X.v = cld[5];                                 // ! X,Y,Z in absolutes
+            nc.Y.v = cld[6];
+            nc.Z.v = cld[7];
+            nc.XC_.v0 = MaxReal; 
+            nc.YC_.v0 = MaxReal; 
+            nc.ZC_.v0 = MaxReal;
+            nc.X.v0 = MaxReal; 
+            nc.Y.v0 = MaxReal;  
+            nc.Z.v0 = MaxReal;
+            switch(nc.Plane.v)
+            {
+                case 17:
+                {
+                    nc.ZC_.v0 = nc.ZC_.v; 
+                    nc.Z.v0 = nc.Z.v;   //!This line changed 17Jan07 by TM for helical path fix via Dave Pearson
+                    break;
+                }
+                case 18:
+                {
+                    nc.YC_.v0 = nc.YC_.v; 
+                    nc.Y.v0 = nc.Y.v;   //!This line changed 17Jan07 by TM for helical path fix via Dave Pearson
+                    break;
+                }
+                case 19:
+                {
+                    nc.XC_.v0 = nc.XC_.v; 
+                    nc.X.v0 = nc.X.v;   //!This line changed 17Jan07 by TM for helical path fix via Dave Pearson
+                    break;
+                }
+            }
+            if (interp_ > 1) 
+                nc.Feed_.v = Feedout;
+            nc.GInterp.v = INTERP_;
+            nc.Block.Out();                                  //! output to NC block
+            XT_ = cld[5];                                    //! save current coordinates
+            YT_ = cld[6];
+            ZT_ = cld[7];
+            nc.GoTCP.v = 0; nc.GoTCP.v0 = nc.GoTCP.v; //! After any move machine is not in tool change position
+        }
+
+        public override void OnPhysicGoto(ICLDPhysicGotoCommand cmd, CLDArray cld)
+        {
+            program PhysicGoto
+              if Cmd.Ptr["Axes(AxisXPos)"]<>0 then begin
+                X = Cmd.Flt["Axes(AxisXPos).Value"]
+                XT_ = X
+              end
+              if Cmd.Ptr["Axes(AxisYPos)"]<>0 then begin
+                Y = Cmd.Flt["Axes(AxisYPos).Value"]
+                YT_ = Y
+              end
+              if Cmd.Ptr["Axes(AxisZPos)"]<>0 then begin
+                Z = Cmd.Flt["Axes(AxisZPos).Value"]
+                ZT_ = Z
+              end
+              if Cmd.Ptr["Axes(AxisAPos)"]<>0 then begin
+                AT = Cmd.Flt["Axes(AxisAPos).Value"]
+              end
+              if (X<>X@) or (Y<>Y@) or (Z<>Z@) or (AT<>AT@) then begin
+                GInterp = 53; GInterp@ = MaxReal ! G53
+                OutBlock ! output to NC block
+              end
+
+              if Cmd.Ptr["Axes(AxisBPos)"]<>0 then begin
+                BT = Cmd.Flt["Axes(AxisBPos).Value"]
+                if BT <> BT@ then begin
+                  BT@ = BT;
+                  MStop = 1;
+                  MStop@ = 0;
+                  OutBlock
+                  output "(Set B-axis tilt position"+ STR(BT)+" degrees)"
+                end;
+              end
+            end
         }
         public override void OnFinishProject(ICLDProject prj)
         {

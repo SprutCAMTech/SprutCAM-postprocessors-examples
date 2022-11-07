@@ -41,9 +41,13 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord GDwell = new NumericNCWord("G{##}", 0);
         ///<summary></summary>
+        public NumericNCWord GFeed = new NumericNCWord("G{###}", 0);
+        ///<summary></summary>
         public NumericNCWord GoTCP = new NumericNCWord("M{###}", 0);
         ///<summary></summary>
         public NumericNCWord M = new NumericNCWord("M{##}", 0);
+        ///<summary></summary>
+        public NumericNCWord MStop = new NumericNCWord("M{##}", 0);
         ///<summary></summary>
         public NumericNCWord D = new NumericNCWord("D{00}", 0);
         ///<summary></summary>

@@ -47,11 +47,11 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord D = new NumericNCWord("D{00}", 0);
         ///<summary></summary>
-        public NumericNCWord H = new NumericNCWord("H{00}", 0);
+        public NumericNCWord H = new NumericNCWord("H{##}", 0);
         ///<summary></summary>
         public NumericNCWord BT = new NumericNCWord("BT-{####.####}", 0);
         ///<summary></summary>
-        public NumericNCWord ZCycle = new NumericNCWord("Z-{####.####}", 0);
+        public NumericNCWord ZCycle = new NumericNCWord("Z-{####.####}", 99999.999);
         ///<summary></summary>
         public NumericNCWord ZClear = new NumericNCWord("Z-{####.####}", 0);
         ///<summary></summary>
@@ -59,15 +59,17 @@ namespace SprutTechnology.SCPostprocessor
         ///<summary></summary>
         public NumericNCWord PSubNum = new NumericNCWord("P{##########}", 0);
         ///<summary></summary>
+        public NumericNCWord AT = new NumericNCWord("A{######.#####}", 0);
+        ///<summary></summary>
         public NumericNCWord Pause = new NumericNCWord("P{##.#}", 0);
         ///<summary></summary>
         public NumericNCWord Tool = new NumericNCWord("T{####}",0);
         ///<summary></summary>
          public NumericNCWord Feed_ = new NumericNCWord("F{####.#}",0);
         ///<summary></summary>
-        public NumericNCWord MSP = new NumericNCWord("M{00}", 5);
+        public NumericNCWord MSP = new NumericNCWord("M{##}", 5);
         ///<summary></summary>
-        public NumericNCWord Mc = new NumericNCWord("M{00}", 0);
+        public NumericNCWord Mc = new NumericNCWord("M{##}", 0);
         ///<summary></summary>
         public NumericNCWord Msm = new NumericNCWord("M{0}", 0);
         ///<summary></summary>
@@ -93,17 +95,29 @@ namespace SprutTechnology.SCPostprocessor
                   CancelScale,
                   COORDSYS,
                   Cycle,
+                  ZCycle,
+                  ZClear,
                   Plane,
                   KorEcv,
                   Tool,
                   KorDL,
                   H,
+                  M,
+                  S,
+                  Feed_,
+                  Q,
+                  BT,
                   Msm,
                   Flip,
                   Units,
                   MSP,
                   GoTCP,
-                  D
+                  D,
+                  Mc,
+                  Cyc_retract,
+                  GDwell,
+                  PSubNum,
+                  Pause
                   );
             TextBlock = new NCBlock(
                       this, 

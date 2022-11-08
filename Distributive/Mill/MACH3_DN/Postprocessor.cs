@@ -1162,6 +1162,13 @@ namespace SprutTechnology.SCPostprocessor
         {
             nc.Output("(MSG, Interpolation doesn't supported)");
         }
+        public override void OnOpStop(ICLDOpStopCommand cmd, CLDArray cld)
+        {
+            if (nc.M.v != nc.M.v0)
+                nc.Block.Out();
+            nc.M.v = 1;      //! M01
+            nc.M.v = 0;
+        }
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {

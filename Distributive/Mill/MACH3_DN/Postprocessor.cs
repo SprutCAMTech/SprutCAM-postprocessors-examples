@@ -1131,7 +1131,12 @@ namespace SprutTechnology.SCPostprocessor
         
         public override void OnFinishProject(ICLDProject prj)
         {
-            nc.Write("%");
+            nc.GoTCP.v =  998; //!GoTCP@ = 0
+            nc.Block.Out();                       // ! output go to Tool Ch Pos
+            nc.M.v = 30;                            // ! M30 Rewind programm
+            nc.Block.Out();                       //! output
+            nc.Output("%");
+            nc.WriteLine();
         }
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)

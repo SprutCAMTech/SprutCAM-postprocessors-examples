@@ -134,37 +134,6 @@ namespace SprutTechnology.SCPostprocessor
             // nc.Z.v = MaxReal;                     //! initialise Z
             
         }
-
-        public void Tapper(double BottomLev,double ReturnLev,double WorkFeed,double ReturnFeed,double BottomDwell, double TopDwell)
-        {
-            nc.Block.Out();
-            if (StructNodeName!="")
-            {
-              nc.BlockN.v = nc.BlockN.v + nc.BlockN.AutoIncrementStep;
-              nc.Output("N" + nc.BlockN.v + " (" + StructNodeName + ")");
-            } 
-            nc.MSP.v0 = 99999.999;                          // ! Spindle forward
-            nc.S.v0 = 99999.999;
-            nc.Block.Out();
-            nc.GInterp.v = 1; nc.GInterp.v0 = 99999.999;
-            nc.Z.v = BottomLev; nc.Z.v0 = 99999.999;             // ! Feed to depth
-            nc.Feed_.v = WorkFeed; nc.Feed_.v0 = 99999.999;     // ! Reduce feedrate
-            nc.Block.Out();
-            nc.MSP.v = 7-nc.MSP.v;                             // ! Spindle reverse
-            nc.Block.Out();
-            nc.GDwell.v = 4; nc.GDwell.v0 = 99999.999;            //! Dwell for spindle
-            nc.Pause.v = BottomDwell; nc.Pause.v0 = 99999.999;
-            nc.Block.Out();
-            nc.GInterp.v = 1; nc.GInterp.v0 = 99999.999;
-            nc.Z.v = ReturnLev; nc.Z.v0= 99999.999;             // ! Feed back to safe level
-            nc.Feed_.v = ReturnFeed; nc.Feed_.v0 = 99999.999;    // ! Increase feedrate
-            nc.Block.Out();
-            nc.MSP.v = 7-nc.MSP.v;                             // ! Spindle forward
-            nc.Block.Out();
-            nc.GDwell.v = 4; nc.GDwell.v0 = 99999.999;           // ! Dwell for spindle
-            nc.Pause.v = TopDwell; nc.Pause.v0 = 99999.999;
-            nc.Block.Out();
-        }
         
         public override void OnStartProject(ICLDProject prj)
         {
@@ -963,6 +932,15 @@ namespace SprutTechnology.SCPostprocessor
                   nc.Block.Out();
                 } 
             }
+        }
+
+        public override void OnDelay()
+        {
+            nc.Block.Out();                  //  ! load old values to block
+            nc.GDwell.v = 4; nc.GDwell.v0 = MaxReal; //! value G4
+            nc.Pause.v = CLD[1];                 // ! dwell value
+            nc.Pause.V0 = MaxReal;               // ! dwell output be always
+            nc.Block.Out();                  //! output NC block
         }
         public override void OnFinishProject(ICLDProject prj)
         {

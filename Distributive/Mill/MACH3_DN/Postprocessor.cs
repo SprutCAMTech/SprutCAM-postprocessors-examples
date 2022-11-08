@@ -1154,6 +1154,14 @@ namespace SprutTechnology.SCPostprocessor
                 nc.Block.Out();
             } 
         }
+        public override void OnInsert(ICLDInsertCommand cmd, CLDArray cld)
+        {
+            nc.Output(cmd.CLDataS);
+        }
+        public override void OnInterpolation(ICLDInterpolationCommand cmd, CLDArray cld)
+        {
+            nc.Output("(MSG, Interpolation doesn't supported)");
+        }
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {

@@ -103,6 +103,37 @@ namespace SprutTechnology.SCPostprocessor
             // nc.Z.v = MaxReal;                     //! initialise Z
             
         }
+
+        public void Tapper(double BottomLev,double ReturnLev,double WorkFeed,double ReturnFeed,double BottomDwell, double TopDwell)
+        {
+            nc.Block.Out();
+            if (StructNodeName!="")
+            {
+              nc.BlockN.v = nc.BlockN.v + nc.BlockN.AutoIncrementStep;
+              nc.Output("N" + nc.BlockN.v + " (" + StructNodeName + ")");
+            } 
+            nc.MSP.v0 = 99999.999;                          // ! Spindle forward
+            nc.S.v0 = 99999.999;
+            nc.Block.Out();
+            nc.GInterp.v = 1; nc.GInterp.v0 = 99999.999;
+            nc.Z.v = BottomLev; nc.Z.v0 = 99999.999;             // ! Feed to depth
+            nc.Feed_.v = WorkFeed; nc.Feed_.v0 = 99999.999;     // ! Reduce feedrate
+            nc.Block.Out();
+            nc.MSP.v = 7-nc.MSP.v;                             // ! Spindle reverse
+            nc.Block.Out();
+            nc.GDwell.v = 4; nc.GDwell.v0 = 99999.999;            //! Dwell for spindle
+            nc.Pause.v = BottomDwell; nc.Pause.v0 = 99999.999;
+            nc.Block.Out();
+            nc.GInterp.v = 1; nc.GInterp.v0 = 99999.999;
+            nc.Z.v = ReturnLev; nc.Z.v0= 99999.999;             // ! Feed back to safe level
+            nc.Feed_.v = ReturnFeed; nc.Feed_.v0 = 99999.999;    // ! Increase feedrate
+            nc.Block.Out();
+            nc.MSP.v = 7-nc.MSP.v;                             // ! Spindle forward
+            nc.Block.Out();
+            nc.GDwell.v = 4; nc.GDwell.v0 = 99999.999;           // ! Dwell for spindle
+            nc.Pause.v = TopDwell; nc.Pause.v0 = 99999.999;
+            nc.Block.Out();
+        }
         
         public override void OnStartProject(ICLDProject prj)
         {
@@ -786,6 +817,121 @@ namespace SprutTechnology.SCPostprocessor
                   nc.D.v=cld[3];
                 } 
               }
+        }
+
+        public override void OnCycle(ICLDCycleCommand cmd, CLDArray cld)
+        {
+            if (cld[1]==72)  //! cycle Off
+            {
+                CycleOn = 0;
+                nc.Cycle.v = 80;
+                nc.Block.Out();  // ! modified 1Oct07 per Dave Pearson to fix G80/G0 issue - ; OutBlock added
+                INTERP_ = 0;
+                nc.GInterp.v = 1; 
+                nc.GInterp.v0 = nc.GInterp.v;
+            }
+            else    // ! cycle call
+            {
+                KodCycle = cld[1];
+                if (KodCycle == 168)
+                {  
+                    if ((OperationType).ToUpper() == ("HoleMachiningOp").ToUpper())
+                    {  
+                      Fr = nc.S.v/cld[12]; //! For new HoleMachining operation take feed from thread step
+                    } 
+                    else    //! For old HoleMachining operation take feed from WorkFeed as it was before
+                    {
+                        if (cld[3]==316)
+                            Fr=nc.S.v*cld[4]; 
+                        else Fr=cld[4];
+                    }
+                    Tapper(cld[5]-cld[2], cld[8], Fr, cld[15], cld[10], 2*cld[10]);
+                } 
+                else
+                {
+                  nc.Cyc_retract.v = 98;
+                  CycleOn = 1;                     //! cycle On
+                  Za = cld[2];                     // ! work depth
+                  if (cld[4] > 0)          //! creating FEED_ value
+                  {
+                    if (cld[3] == 316) 
+                        Fr=cld[4]*nc.S.v;
+                    else Fr=cld[4];
+                  
+                  }
+                  Zf = cld[5];                     // ! safe level
+                  ZP_ = cld[8];                    //  ! reverse move level
+                  Dwell = cld[10];                  //! dwell time
+                  if (cld[1] == 153 || cld[1]==288) // ! DEEP,BRKCHP
+                  {
+                    Zl = cld[6];                   // ! depth of one drilling step
+                    Zi = cld[7];                   // ! transitional value
+                    ZP_ = cld[8];                  // ! reverse move level
+                  }
+                  nc.ZCycle.v = Zf-Za; 
+                  nc.ZClear.v = Zf;
+                  nc.Pause.v = Dwell;
+                  Dwell=0;
+                  if (Zl != 0) 
+                    nc.Q.v = Zl; 
+                  Zl=0;
+                  nc.Feed_.v = Fr;
+                  switch(KodCycle)
+                  {
+                    case 163:
+                    {
+                        nc.Cycle.v = 81;  // ! DRILL
+                        break;
+                    }
+                    case 81:
+                    {
+                        nc.Cycle.v = 82;  // ! FACE
+                        break;
+                    }
+                    case 168:
+                    {
+                        nc.Cycle.v = 84;  // ! TAP
+                        break;
+                    }
+                    case 209:
+                    {
+                        nc.Cycle.v = 85;  // ! BORE5
+                        break;
+                    }
+                    case 210:
+                    {
+                        nc.Cycle.v = 86;  // ! BORE6
+                        break;
+                    }
+                    case 211:
+                    {
+                        nc.Cycle.v = 87;   //! BORE7
+                        break;
+                    }
+                    case 212:
+                    {
+                        nc.Cycle.v = 88;   //! BORE8
+                        break;
+                    }
+                    case 213:
+                    {
+                        nc.Cycle.v = 89;   //! BORE9
+                        break;
+                    }
+                    case 153:
+                    {
+                        nc.Cycle.v = 83;   //! DEEP
+                        break;
+                    }
+                    case 288:
+                    {
+                        nc.Cycle.v = 73;   //! BRKCHP
+                        break;
+                    }
+                  }
+                  nc.Block.Out();
+                } 
+            }
         }
         public override void OnFinishProject(ICLDProject prj)
         {

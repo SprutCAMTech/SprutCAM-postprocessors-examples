@@ -764,6 +764,29 @@ namespace SprutTechnology.SCPostprocessor
         //       XT_ = nc.X.v;  YT_ = nc.Y.v;  ZT_ = nc.Z.v; //! save current coordinates
         //       nc.GoTCP.v = 0; nc.GoTCP.v0 = nc.GoTCP.v; //! After any move machine is not in tool change position
         // }
+
+        public override void OnCutCom(ICLDCutComCommand cmd, CLDArray cld)
+        {
+              if (cld[2]==9)    //! LENGTH
+              {                   
+                if (cld[1] ==71) 
+                    H_=cld[3] ;
+                else H_= 0;
+              }
+              
+              else if (cld[2]==23)         //   ! RADIUS
+              {
+                if (cld[1]==72) 
+                    nc.KorEcv.v=40;
+                else
+                {                
+                  if (cld[10]==24) 
+                    nc.KorEcv.v=42; 
+                  else nc.KorEcv.v=41;
+                  nc.D.v=cld[3];
+                } 
+              }
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Write("%");

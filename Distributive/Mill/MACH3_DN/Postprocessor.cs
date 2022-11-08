@@ -1139,6 +1139,22 @@ namespace SprutTechnology.SCPostprocessor
             nc.WriteLine();
         }
 
+        public override void OnGoHome(ICLDGoHomeCommand cmd, CLDArray cld)
+        {
+            if (CycleOn==1) 
+            {  
+              CycleOn=0;
+              nc.Cycle.v=80;
+              nc.Block.Out();                 //! Output in block
+            }
+            if (nc.GoTCP.v0!=998)
+            {
+                nc.Block.Out();
+                nc.GoTCP.v = 998; //! M998 go to tool change point
+                nc.Block.Out();
+            } 
+        }
+
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
             

@@ -727,6 +727,43 @@ namespace SprutTechnology.SCPostprocessor
                 } 
               }
         }
+
+        // public override void OnAbsMov(ICLDPhysicGotoCommand cmd, CLDArray cld)
+        // {
+        //       if (INTERP_>0)
+        //       {
+        //         nc.GFeed.v = 94;
+        //         nc.Feed_.v = Feedout;
+        //         if (nc.GFeed.v!=nc.GFeed.v0)
+        //         {
+        //             nc.Feed_.v0=MaxReal;
+        //         }
+        //       } 
+        //       if (INTERP_ > 1)    //! G1
+        //       {
+        //          INTERP_ = 1; 
+        //       }
+        //       nc.X.v = cld[1];                        // ! X,Y,Z in absolutes
+        //       nc.Y.v = cld[2];
+        //       nc.Z.v = cld[3];
+        //       if ((nc.X.v != nc.X.v0) || (nc.Y.v!=nc.Y.v0) || (nc.Z.v!=nc.Z.v0))
+        //       {
+        //         if ((cycleon==0) && (nc.AT.v!=nc.AT.v0) && (nc.Z.v!=nc.Z.v0))     // ! when drilling, don't output X/Y pos
+        //         {
+        //           nc.GInterp.v = INTERP_;
+        //           if ((CycleOn>0) && ((nc.AT.v!=nc.AT.v0) || (nc.Z.v!=nc.Z.v0)))    // ! Cannot G81 with A at the same time
+        //           {
+        //             nc.GInterp.v0 = MaxReal;
+        //             nc.Cycle.v = 80; 
+        //             nc.Cycle.v0 = MaxReal;
+        //             CycleOn = 0;
+        //           }
+        //           nc.Block.Out();               // ! output to NC block
+        //         } 
+        //       } 
+        //       XT_ = nc.X.v;  YT_ = nc.Y.v;  ZT_ = nc.Z.v; //! save current coordinates
+        //       nc.GoTCP.v = 0; nc.GoTCP.v0 = nc.GoTCP.v; //! After any move machine is not in tool change position
+        // }
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Write("%");

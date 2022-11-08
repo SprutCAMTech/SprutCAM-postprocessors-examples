@@ -25,15 +25,15 @@ namespace SprutTechnology.SCPostprocessor
         double YT_ = 0;
         double ZT_ = 0;
         //! Constsnt cycles variables
-        int CycleOn = 0;          //! 0 - cycle Off, 1 - cycle On
-        int KodCycle = 0;         //! constant cycle code
-        int Za = 0;               //! work depth
-        int Zf = 0;               //! safe level
-        int ZP_ = 0;              // ! reverse move level
-        int Zl = 0;               //! depth of one drilling step
-        int Zi = 0;               //! transitional value
-        int Dwell = 0;            //! pause in constsnt cycles
-        int Fr = 0;               //! work FEED_ 
+        double CycleOn = 0;          //! 0 - cycle Off, 1 - cycle On
+        double KodCycle = 0;         //! constant cycle code
+        double Za = 0;               //! work depth
+        double Zf = 0;               //! safe level
+        double ZP_ = 0;              // ! reverse move level
+        double Zl = 0;               //! depth of one drilling step
+        double Zi = 0;               //! transitional value
+        double Dwell = 0;            //! pause in constsnt cycles
+        double Fr = 0;               //! work FEED_ 
         //! Set machene functions by default
         double cycleon = 1;
         double Feedout = 0;
@@ -41,15 +41,36 @@ namespace SprutTechnology.SCPostprocessor
         double interp_ = 99999.999;
         string StructNodeName = "";
         
-        int D_, H_;
         int Firstap = 1;
         int Fedmod = 10;
         int Isfirstpass = 1;
         int SubIDShift = 0;//! Numbers of subroutines starts from it
 
-        int cfi;
-        int ppfj;
-
+        
+        double Interp_;
+        double CYCLEON;
+        double KODCYCLE;
+        double ZA;
+        double ZF;
+        double ZL;
+        double ZI;
+        double DWELL;
+        double FR;
+        double D_;
+        double H_;
+        int IsFirstpass;
+        double X1;
+        double Y1;
+        double Z1;
+        double A1;
+        double X2;
+        double Y2;
+        double Z2;
+        double A2;
+        double FedMod;
+        string OperationType;        
+        int cfi;     //! CLDFile.CurrentFile
+        int ppfj;   // ! CLDFile[cfi].Cmd[ppfj] = PPFun(TechInfo) of the current operation
         const string SPPName = "MACH3_DN";
   
          public void OutToolList()
@@ -666,38 +687,45 @@ namespace SprutTechnology.SCPostprocessor
 
         public override void OnPhysicGoto(ICLDPhysicGotoCommand cmd, CLDArray cld)
         {
-            program PhysicGoto
-              if Cmd.Ptr["Axes(AxisXPos)"]<>0 then begin
-                X = Cmd.Flt["Axes(AxisXPos).Value"]
-                XT_ = X
-              end
-              if Cmd.Ptr["Axes(AxisYPos)"]<>0 then begin
-                Y = Cmd.Flt["Axes(AxisYPos).Value"]
-                YT_ = Y
-              end
-              if Cmd.Ptr["Axes(AxisZPos)"]<>0 then begin
-                Z = Cmd.Flt["Axes(AxisZPos).Value"]
-                ZT_ = Z
-              end
-              if Cmd.Ptr["Axes(AxisAPos)"]<>0 then begin
-                AT = Cmd.Flt["Axes(AxisAPos).Value"]
-              end
-              if (X<>X@) or (Y<>Y@) or (Z<>Z@) or (AT<>AT@) then begin
-                GInterp = 53; GInterp@ = MaxReal ! G53
-                OutBlock ! output to NC block
-              end
+              if (cmd.Axis.X != null)
+              {
+                nc.X.v = cmd.Flt["Axes(AxisXPos).Value"];
+                XT_ = nc.X.v;
+              } 
+              if (cmd.Axis.Y != null) 
+              {
+                nc.Y.v = cmd.Flt["Axes(AxisYPos).Value"];
+                YT_ = nc.Y.v;
+              }
+                
+              if (cmd.Axis.Z != null)
+              {
+                nc.Z.v = cmd.Flt["Axes(AxisZPos).Value"];
+                ZT_ = nc.Z.v;
+              } 
+              if (cmd.Axis.A != null)
+              {   
+                nc.AT.v = cmd.Flt["Axes(AxisAPos).Value"];
+              } 
+              if ((nc.X.v!=nc.X.v0) || (nc.Y.v!=nc.Y.v0) || (nc.Z.v!=nc.Z.v0) || (nc.AT.v!=nc.AT.v0))
+              {
+                nc.GInterp.v = 53; 
+                nc.GInterp.v0 = MaxReal;  // ! G53
+                nc.Block.Out();   // ! output to NC block
+              } 
 
-              if Cmd.Ptr["Axes(AxisBPos)"]<>0 then begin
-                BT = Cmd.Flt["Axes(AxisBPos).Value"]
-                if BT <> BT@ then begin
-                  BT@ = BT;
-                  MStop = 1;
-                  MStop@ = 0;
-                  OutBlock
-                  output "(Set B-axis tilt position"+ STR(BT)+" degrees)"
-                end;
-              end
-            end
+              if (cmd.Axis.B != null) 
+              {
+                nc.BT.v = cmd.Flt["Axes(AxisBPos).Value"];
+                if (nc.BT.v != nc.BT.v0)
+                {
+                  nc.BT.v0 = nc.BT.v;
+                  nc.MStop.v = 1;
+                  nc.MStop.v0 = 0;
+                  nc.Block.Out();
+                  nc.Output("(Set B-axis tilt position" + nc.BT.v + " degrees)");
+                } 
+              }
         }
         public override void OnFinishProject(ICLDProject prj)
         {

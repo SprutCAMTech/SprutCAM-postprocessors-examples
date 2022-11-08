@@ -1170,6 +1170,48 @@ namespace SprutTechnology.SCPostprocessor
             nc.M.v = 0;
         }
 
+        public override void OnOrigin(ICLDOriginCommand cmd, CLDArray cld)
+        {
+            void SwitchOffLocalCS()
+            {
+                if (nc.GLCS.v ==52) //! Switch off G52
+                {
+                    nc.GLCS.v0 = MaxReal;
+                    nc.X.v = 0; nc.X.v0 = MaxReal;
+                    nc.Y.v = 0; nc.Y.v0 = MaxReal;
+                    nc.Z.v = 0; nc.Z.v0 = MaxReal;
+                    nc.Block.Out();
+                    nc.X.v = MaxReal; nc.X.v0 = nc.X.v;
+                    nc.Y.v = MaxReal; nc.Y.v0 = nc.Y.v;
+                    nc.Z.v = MaxReal; nc.Z.v0 = nc.Z.v;
+                    nc.GLCS.v = 0;  nc.GLCS.v0 = nc.GLCS.v;
+                }
+           }
+    
+
+            if (cmd.OriginType==0)
+            {
+              SwitchOffLocalCS();
+              if (cmd.Flt["CSNumber"] != 0)
+              {
+                    nc.COORDSYS.v = cmd.Flt["CSNumber"]; //! Work offset number G54-G59
+                    if (nc.COORDSYS.v0!= nc.COORDSYS.v)
+                        nc.Block.Out();
+              } 
+            } 
+            else    //! Switch on G52
+            {
+              nc.GLCS.v = 52; nc.GLCS.v0 = MaxReal;
+              nc.X.v = cmd.Flt["MCS.OriginPoint.X"]; nc.X.v0 = MaxReal;
+              nc.Y.v = cmd.Flt["MCS.OriginPoint.Y"]; nc.Y.v0 = MaxReal;
+              nc.Z.v = cmd.Flt["MCS.OriginPoint.Z"]; nc.Z.v0 = MaxReal;
+              nc.Block.Out();
+              nc.X.v = MaxReal; nc.X.v0 = nc.X.v;
+              nc.Y.v = MaxReal; nc.Y.v0 = nc.Y.v;
+              nc.Z.v = MaxReal; nc.Z.v0 = nc.Z.v;
+            }
+        }
+
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
             

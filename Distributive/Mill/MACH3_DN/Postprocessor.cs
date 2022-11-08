@@ -942,6 +942,170 @@ namespace SprutTechnology.SCPostprocessor
             nc.Pause.V0 = MaxReal;               // ! dwell output be always
             nc.Block.Out();                  //! output NC block
         }
+
+        public override void OnExtCycle()
+        {
+            if (cld[1]==72) //! cycle Off;
+            {
+                CycleOn = 0;
+                nc.Cycle = 80;
+                nc.Block.Out();
+                INTERP_ = 0;
+                nc.GInterp.v = 1; 
+                nc.GInterp.v0 = GInterp;
+            } 
+            else
+            if (cld[1]=52)  //     ! do cycle
+            {
+                if ((CLD.SubType>=473) && (CLD.SubType<=489) && (CLD.SubType!=484)) //! Mill cycles
+                {
+                    //! All drill cycles have same ZCycle ZClear Feed_
+                    if (cld[10] > 0)    //! creating FEED_ value
+                    {       
+                        if (cld[9] == 0)
+                            Fr = cld[10]*S;
+                        else Fr = cld[10];
+                        nc.Feed_.v= Fr;
+                        nc.ZCycle.v = Z - cld[8];
+                        nc.ZClear.v = Z - cld[6];
+                        nc.Cyc_retract = 98;
+                        CycleOn = 1;
+                    } 
+                }
+                switch(CLD.SubType)
+                {
+                    case 481:
+                    {
+                        if (Cycle!=81)
+                        {
+                            nc.Feed_.v0=MaxReal;
+                            nc.ZCycle.v0 = MaxReal;
+                            nc.ZClear.v0 = MaxReal;
+                        } 
+                      nc.Cycle.v = 81;
+                      nc.Block.Out();
+                        break;
+                    }
+                    case 482: 
+                    {
+                        if (Cycle!=82)
+                        { 
+                          nc.Feed_.v0=MaxReal;
+                          nc.ZCycle.v0 = MaxReal;
+                          nc.ZClear.v0 = MaxReal;
+                          nc.Pause.v0 = MaxReal;
+                        } 
+                        nc.Pause.v = cld[15];
+                        Cycle = 82;
+                        nc.Block.Out();
+                    }
+                    case 483:
+                    {
+                        if (Cycle!=83)
+                        {
+                            nc.Feed_.v0=MaxReal;
+                            nc.ZCycle.v0 = MaxReal;
+                            nc.ZClear.v0 = MaxReal;
+                            //!Pause@ = MaxReal;
+                            nc.QStep.v0 = MaxReal;
+                        } 
+                        nc.QStep.v = cld[17];
+                        //!Pause = cld[15];
+                        nc.Cycle = 83;
+                        nc.Block.Out();
+                        break;
+                    } 
+                    case 484:
+                    {
+                        if (cld[13]==0)
+                            Fr = nc.S.v*cld[14]; 
+                        else Fr = cld[14];
+                          call Tapper(nc.Z.v-cld[8], nc.Z.v-cld[6], nc.S.v*cld[17], Fr, cld[15], cld[16])
+                    } 
+                    485: begin
+                          if Cycle<>85 then begin
+                            Feed_@=Maxreal;
+                            ZCycle@ = MaxReal;
+                            ZClear@ = MaxReal;
+                          end;
+                          Cycle = 85;
+                          OutBlock
+                        break;
+              486: begin
+                if Cycle<>86 then begin
+                  Feed_@=Maxreal;
+                  ZCycle@ = MaxReal;
+                  ZClear@ = MaxReal;
+                end;
+                Pause = cld[15];
+                if Pause=0 then
+                  Pause@ = 0
+                Cycle = 86;
+                OutBlock
+              end
+              487: begin
+                if Cycle<>87 then begin
+                  Feed_@=Maxreal;
+                  ZCycle@ = MaxReal;
+                  ZClear@ = MaxReal;
+                end;
+                Pause = cld[15];
+                if Pause=0 then
+                  Pause@ = 0
+                Cycle = 87;
+                if cld[17]>0 then begin
+                  !call Swap(ZCycle, ZClear)
+                  XC_=cld[19]; XC_@=0
+                  YC_=cld[20]; YC_@=0
+                  ZC_=cld[21]; ZC_@=0
+                end
+                OutBlock
+              end
+              488: begin
+                if Cycle<>88 then begin
+                  Feed_@=Maxreal;
+                  ZCycle@ = MaxReal;
+                  ZClear@ = MaxReal;
+                  Pause@ = MaxReal;
+                end;
+                Pause = cld[15];
+                Cycle = 88;
+                OutBlock
+              end
+              489: begin
+                if Cycle<>89 then begin
+                  Feed_@=Maxreal;
+                  ZCycle@ = MaxReal;
+                  ZClear@ = MaxReal;
+                  Pause@ = MaxReal;
+                end;
+                Pause = cld[15];
+                Cycle = 89;
+                OutBlock
+              end
+              473: begin
+                if Cycle<>73 then begin
+                  Feed_@=Maxreal;
+                  ZCycle@ = MaxReal;
+                  ZClear@ = MaxReal;
+                  QStep@ = MaxReal;
+                end;
+                QStep =cld[17];
+                Cycle = 73;
+                OutBlock
+              end;
+              else begin
+                Output "(MSG, Cycle doesn't supported)"
+              end
+            end ! case
+                }
+            
+              
+          
+        
+            }
+                
+        }
         public override void OnFinishProject(ICLDProject prj)
         {
             nc.Write("%");

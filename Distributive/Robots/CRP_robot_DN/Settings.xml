@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments />
+        <CNCSystem />
+        <MachineName>CRP Robot</MachineName>
+        <Authors />
+    </Description>
+    <Common>
+        <BreakArcs>No</BreakArcs>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakHelix>false</BreakHelix>
+        <!-- false, true -->
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="OutputFolder" Caption="$(NCFilesDir)" Type="FolderName" />
+            <Parameter ID="ProgramName" Caption="Program files short name" Type="String">program</Parameter>
+            <Parameter ID="MaxMoveCount" Caption="Max movement count per file" Type="Integer">100000</Parameter>
+        </Group>
+        <Group ID="Smoothing" Caption="Smoothing">
+            <Parameter ID="DefaultACC" Caption="Default ACC value" Type="Integer">0</Parameter>
+            <Parameter ID="StartVelocity" Caption="Start velocity (mm/sec)" Type="Double">100</Parameter>
+            <Parameter ID="PLValue" Caption="PL value (non joint)" Type="Integer" Persistent="true">9</Parameter>
+        </Group>
+        <Group ID="Format" Caption="Format">
+            <Parameter ID="RobotHolds" Caption="Robot holds" Type="Integer">
+                <Value Caption="Tool" Default="true">0</Value>
+                <Value Caption="Part">1</Value>
+            </Parameter>
+            <Parameter ID="BaseFormat" Caption="BASE format" Type="Integer">
+                <Value Caption="BASE=1" Default="true">0</Value>
+                <Value Caption="BASE[1]=XYZABC">1</Value>
+            </Parameter>
+            <Parameter ID="ToolFormat" Caption="TOOL format" Type="Integer">
+                <Value Caption="TOOL=1" Default="true">0</Value>
+                <Value Caption="TOOL[1]=XYZABC">1</Value>
+            </Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>

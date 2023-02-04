@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments />
+        <CNCSystem>Sinumerik 840D</CNCSystem>
+        <MachineName />
+        <Authors />
+    </Description>
+    <Common>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakArcs>No</BreakArcs>
+        <!-- false, true -->
+        <BreakHelix>false</BreakHelix>
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="NCFileName" Caption="$(NCFileName)" Type="FileName" />
+            <Parameter ID="NCProgName" Caption="NC program name" Type="String" />
+        </Group>
+        <Group ID="Format" Caption="Format">
+            <Parameter ID="BlocksNumbering" Caption="Blocks numbering" Type="Boolean">True</Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>

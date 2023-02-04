@@ -517,6 +517,7 @@ namespace SprutTechnology.SCPostprocessor
                 }
             }
             nc.Block.Out();
+            nc.LastP = cmd.EP;
         }
 
         public override void OnAxesBrake(ICLDAxesBrakeCommand cmd, CLDArray cld)
@@ -663,7 +664,7 @@ namespace SprutTechnology.SCPostprocessor
                     default: 
                         nc.WriteLine($"   ERROR: cycle {nc.GCycle} not implemented for the operation '{CurrentOperation.Comment}'");
                         Log.Error($"Cycle {nc.GCycle} not implemented for the operation '{CurrentOperation.Comment}'");
-                        if (cycleNonImplementedAnswer != MsgClickedBtn.Ignore) {
+                        if ((cycleNonImplementedAnswer != MsgClickedBtn.Ignore) && !IsTest()) {
                             cycleNonImplementedAnswer = Log.MessageBox(
                                 $"The postprocessor does not implement {nc.GCycle} hole cycle.\r\n" +
                                 $"Try to use 'long hand' cycle format instead for the operation: '{CurrentOperation.Comment}'.\r\n" + 
@@ -679,6 +680,15 @@ namespace SprutTechnology.SCPostprocessor
                         break;
                 }
             }
+        }
+
+        bool IsTest()
+        {            
+            bool result = false;
+            var args = Environment.GetCommandLineArgs();
+            if (args!=null)
+                result = args.Contains("-test");
+            return result;
         }
 
         private void OutG65_P(int P, params (string, double) [] pairs)

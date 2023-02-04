@@ -228,6 +228,12 @@ namespace SprutTechnology.SCPostprocessor
             nc.Block.Out();
             nc.WriteLine();
         }
+        private bool IsPNPoperation(ICLDTechOperation op)
+        {
+            string opt = op.TypeName;
+            bool res = (SameText(opt,"TSTTakeoverMTM") || SameText(opt,"TSTTurnPNP") || SameText(opt,"TSTPickAndPlace"));
+            return res;
+        }
 
         public override void OnStartTechOperation(ICLDTechOperation op, ICLDPPFunCommand cmd, CLDArray cld)
         {
@@ -237,13 +243,12 @@ namespace SprutTechnology.SCPostprocessor
             CycleOpnum=0;
 
             currentOperationType = (OpType)(int)cld[60];
-            if (SameText(op.TypeName, "TSTPickAndPlace"))
+            if (IsPNPoperation(op))
                 currentOperationType=OpType.Auxiliary;
 
             if (NeedPartEject)
             {
-                string opt = op.TypeName;
-                if (SameText(opt,"TSTPickAndPlace") || SameText(opt,"TSTTurnPNP"))
+                if (IsPNPoperation(op))
                 {
                     NeedPartEject=false;
                     outPartEjection();
@@ -365,7 +370,10 @@ namespace SprutTechnology.SCPostprocessor
                 return;
 
             if (op.Tool!=null && op.Tool.Command!=null) {
-                nc.T.Show(op.Tool.Number*100);
+                int tn = op.Tool.Number;
+                if ((nc==nc2) && (tn>10) && (tn<15))
+                    tn = 20;
+                nc.T.Show(tn*100);
                 nc.Block.Out();
                 nc.TCor.Show(op.Tool.Command.LCorNum);
                 nc.TrailingComment.v = Transliterate(op.Tool.Caption);
@@ -1040,6 +1048,8 @@ namespace SprutTechnology.SCPostprocessor
         {
             if (NCFiles.OutputDisabled)
                 return;
+            if (cmd.PointID.Contains("SubAxial2"))
+                return; //Middle label in a wait main spindle operation.
             if (SameText(cmd.PointID, "Takeover2")) {
                 SyncSpindles(true,true);
             } else if (SameText(cmd.PointID, "Takeover3")) {

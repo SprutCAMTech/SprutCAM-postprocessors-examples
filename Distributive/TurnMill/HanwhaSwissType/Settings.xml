@@ -19,8 +19,8 @@
             <Parameter ID="NCFilePath" Caption="$(NCFilesDir)" Type="FolderName"></Parameter>
             <Parameter ID="NCProgNumber" Caption="$(NCProgNumber)" Type="Integer">1</Parameter>
         </Group>
-        <Group ID="Polar" Caption="Полярная интерполяция">
-            <Parameter ID="RapidFeed" Caption="Быстрая подача" Type="Double">1000</Parameter>
+        <Group ID="Polar" Caption="Polar interpolation">
+            <Parameter ID="RapidFeed" Caption="Rapid feed" Type="Double">1000</Parameter>
         </Group>
     </UserDefinedParameters>
 </Settings>

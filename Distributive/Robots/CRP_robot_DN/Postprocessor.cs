@@ -56,17 +56,24 @@ namespace SprutTechnology.SCPostprocessor
         public void FillJoints(IEnumerable axes) 
         {    
             foreach(CLDMultiMotionAxis ax in axes) {
-                for (int i=1; i<=6; i++) {
-                    if (SameText(ax.ID, "AxisA"+i+"Pos")) {
-                        this.J[i] = ax.Value;
-                        break;
-                    } 
-                    else 
-                    if (SameText(ax.ID, "ExtAxis"+i+"Pos")) {
-                        this.E[i] = ax.Value;
-                        break;
-                    } 
-                }
+                if (ax.IsA1)
+                    this.J[1] = ax.Value;
+                else if (ax.IsA2)
+                    this.J[2] = ax.Value;
+                else if (ax.IsA3) 
+                    this.J[3] = ax.Value;
+                else if (ax.IsA4)
+                    this.J[4] = ax.Value;
+                else if (ax.IsA5)
+                    this.J[5] = ax.Value;
+                else if (ax.IsA6)
+                    this.J[6] = ax.Value;
+                else if (ax.IsE1)
+                    this.E[1] = ax.Value;
+                else if (ax.IsE2)
+                    this.E[2] = ax.Value;
+                else if (ax.IsE3)
+                    this.E[3] = ax.Value;
             }
         }
 

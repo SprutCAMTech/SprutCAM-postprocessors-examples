@@ -1,0 +1,48 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch post",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildPostprocessor",
+            "program": "${env:SprutCAMDir}/DotNet/InpCore.exe",
+            "args": [
+                "-cldviewermode", 
+                "-sharedfile:STInpCoreOfDebugger", 
+                "-postfile:\"${workspaceFolder}\\bin\\Debug\\${workspaceFolderBasename}.dll\""
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "justMyCode": true
+        },
+        {
+            "name": "Launch post (console mode)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "buildPostprocessor",
+            "program": "${env:SprutCAMDir}/DotNet/InpCore.exe",
+            "args": [
+                "-batchmode", 
+                "-cldfile:\"c:\\Users\\Public\\Documents\\SprutCAM\\Version 16\\Projects\\Examples\\Milling\\3+2D\\3+2.stc\"",
+                "-postfile:\"${workspaceFolder}\\bin\\Debug\\${workspaceFolderBasename}.dll\"",
+                "-settingsfile:\"${workspaceFolder}\\Settings.xml"
+                ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "enableStepFiltering": false,
+            "justMyCode": true
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}

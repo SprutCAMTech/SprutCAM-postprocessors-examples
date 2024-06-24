@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<?xml-model href="PostSchema.xsd"?>
+
+<Settings Version="1.0">
+    <Description>
+        <Comments />
+        <CNCSystem />
+        <MachineName />
+        <Authors />
+    </Description>
+    <Common>
+        <!-- No, Cuts, Halfs, Quaters -->
+        <BreakArcs>No</BreakArcs>
+        <!-- false, true -->
+        <BreakHelix>false</BreakHelix>
+        <ArcTolerance>0.01</ArcTolerance>
+        <MaxCircleRadius>0</MaxCircleRadius>
+        <DecimalSeparator>.</DecimalSeparator>
+    </Common>
+    <UserDefinedParameters>
+        <Group ID="OutFiles" Caption="$(OutputFiles)">
+            <Parameter ID="NCFilesOutDir" Caption="$(NCFilesDir)" Type="FolderName" />
+            <Parameter ID="ProgName" Caption="Programm name" Type="String" />
+            <Parameter ID="MaxLinesCount" Caption="Max lines count per file" Type="Integer" Persistent="true">1000000</Parameter>
+        </Group>
+    </UserDefinedParameters>
+</Settings>
